@@ -17,6 +17,19 @@ Wrapper (`backend/mvnw.cmd`) geladen, Frontend-Abhängigkeiten installiert `star
 `backend/src/main/resources/application.yml` unter `talentmatch.seed` (HR-Manager:in und Bewerber:in).
 Passwort ändern: Avatar oben rechts → „Passwort ändern“.
 
+## Bewerber-Portal
+
+Bewerber:innen registrieren sich selbst („Als Bewerber:in registrieren“ auf der Login-Seite) und
+erhalten immer die Rolle Bewerber:in. Im Portal können sie:
+
+- **Offene Stellen** ansehen und sich mit einem PDF-Lebenslauf bewerben (eine Bewerbung pro Stelle),
+- unter **Meine Bewerbungen** den Status verfolgen: Eingegangen → Einladung zum Interview → Zusage/Absage.
+
+Bewerber:innen sehen bewusst **keinen Match-Score** und keine KI-Bewertung; der interne Schritt
+„KI-analysiert“ erscheint für sie als „Eingegangen“. Nach dem Absenden startet die KI-Analyse
+automatisch im Hintergrund – schlägt sie fehl (z. B. ohne API-Key), kann HR sie in der Pipeline
+manuell starten. Das Demo-Bewerberkonto hat bereits zwei Bewerbungen.
+
 ## KI-Analyse (OpenAI)
 
 Die Analyse neuer Lebensläufe nutzt Spring AI mit OpenAI `gpt-4o`. Vor dem Start setzen:
@@ -37,7 +50,7 @@ Modell änderbar über `OPENAI_MODEL`.
 | KI-Workflows | `ai/RecruitingAiService`: Resume Parsing und Match-Analyse via `BeanOutputConverter` (Structured Output) |
 | Matching | `analysis/SkillMatcher` (regelbasiert) + LLM-Bewertung; Score = 50 % Skills, 30 % Erfahrung, 10 % Ausbildung, 10 % Sprachen |
 | PDF | Apache Tika über `spring-ai-tika-document-reader`; Original-PDF wird für die Vorschau gespeichert |
-| Sicherheit | JWT (HS256), Rollen `HR_MANAGER` / `APPLICANT`; alle Recruiting-Endpunkte nur für HR |
+| Sicherheit | JWT (HS256), Rollen `HR_MANAGER` / `APPLICANT`; Recruiting-Endpunkte nur für HR, `/api/applicant/**` nur für Bewerber:innen |
 | Datenbank | Lokal H2 (Datei `backend/data/`, PostgreSQL-Modus); Profil `postgres` für PostgreSQL |
 | Frontend | `frontend/` – Standalone Components, Signals-Stores, Reactive Forms, Route Guards, CDK Drag & Drop |
 
