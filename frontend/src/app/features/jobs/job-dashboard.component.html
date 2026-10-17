@@ -54,7 +54,8 @@
       class="view-toggle"
       ariaLabel="Ansicht"
       [options]="viewOptions"
-      [(value)]="viewMode"
+      [value]="viewMode()"
+      (valueChange)="store.setViewMode($event)"
     />
   </div>
 

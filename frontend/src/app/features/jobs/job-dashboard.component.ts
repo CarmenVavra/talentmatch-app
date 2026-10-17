@@ -3,13 +3,11 @@ import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 
 import { Job } from '../../core/models/api.models';
-import { JobStore } from '../../core/state/job.store';
+import { JobStore, JobViewMode } from '../../core/state/job.store';
 import { ICONS } from '../../shared/icons';
 import { DeDatePipe, ScoreLabelPipe, ScoreTonePipe } from '../../shared/pipes';
 import { SegmentOption, SegmentedControlComponent } from '../../shared/segmented-control.component';
 import { DEPARTMENTS, filterJobs, statusSegments } from './job-filters';
-
-type ViewMode = 'tiles' | 'table';
 
 interface Kpi {
   label: string;
@@ -39,12 +37,13 @@ export class JobDashboardComponent {
 
   protected readonly query = signal('');
   protected readonly department = signal<string>('Alle');
-  protected readonly viewMode = signal<ViewMode>('tiles');
+  /** Liegt im Store, damit die Wahl beim Zurückkehren erhalten bleibt. */
+  protected readonly viewMode = this.store.viewMode;
 
   protected readonly departmentOptions: SegmentOption<string>[] = ['Alle', ...DEPARTMENTS].map(
     (d) => ({ value: d, label: d }),
   );
-  protected readonly viewOptions: SegmentOption<ViewMode>[] = [
+  protected readonly viewOptions: SegmentOption<JobViewMode>[] = [
     { value: 'tiles', label: 'Kacheln', icon: ICONS.grid },
     { value: 'table', label: 'Tabelle', icon: ICONS.list },
   ];

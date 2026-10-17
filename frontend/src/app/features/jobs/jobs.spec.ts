@@ -38,13 +38,17 @@ describe('job pages', () => {
   let http: HttpTestingController;
 
   beforeEach(() => {
+    localStorage.removeItem('talentmatch.jobs.viewMode');
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    localStorage.removeItem('talentmatch.jobs.viewMode');
+  });
 
   describe('JobDashboardComponent', () => {
     async function render() {
@@ -73,6 +77,23 @@ describe('job pages', () => {
       (radios[1] as HTMLInputElement).click();
       await fixture.whenStable();
       expect(root.querySelectorAll('tbody tr').length).toBe(2);
+    });
+
+    it('keeps the table view after navigating away and back', async () => {
+      const first = await render();
+      const radios = (first.nativeElement as HTMLElement).querySelectorAll('.view-toggle input');
+      (radios[1] as HTMLInputElement).click();
+      await first.whenStable();
+      first.destroy();
+
+      // Neuer Komponenten-Aufbau wie bei der Rückkehr zur Route /jobs
+      const second = await render();
+      const root = second.nativeElement as HTMLElement;
+      expect(root.querySelectorAll('tbody tr').length).toBe(2);
+      expect(root.querySelectorAll('.tile').length).toBe(0);
+      expect(
+        (root.querySelectorAll('.view-toggle input')[1] as HTMLInputElement).checked,
+      ).toBeTrue();
     });
 
     it('shows the empty state when nothing matches', async () => {

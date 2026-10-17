@@ -5,6 +5,10 @@ import { JobApiService } from '../api/job-api.service';
 import { CreateJobRequest, DashboardKpis, Job } from '../models/api.models';
 import { errorMessage } from '../util/http-error';
 
+export type JobViewMode = 'tiles' | 'table';
+
+const VIEW_MODE_KEY = 'talentmatch.jobs.viewMode';
+
 /**
  * Stellen und Dashboard-Kennzahlen (Signals). Wird beim Öffnen des Dashboards frisch geladen,
  * damit Statuswechsel aus Pipeline und Detail sofort in den Zählern erscheinen.
@@ -19,6 +23,8 @@ export class JobStore {
   readonly loaded = signal(false);
   readonly error = signal<string | null>(null);
   readonly selectedJobId = signal<number | null>(null);
+  /** Kachel- oder Tabellenansicht – bleibt erhalten, bis der Benutzer sie ändert. */
+  readonly viewMode = signal<JobViewMode>(restoreViewMode());
 
   /** Ziel des Nav-Punkts „Pipeline“: zuletzt geöffnete Stelle, sonst die neueste. */
   readonly pipelineJobId = computed(() => this.selectedJobId() ?? this.jobs()[0]?.id ?? null);
@@ -60,5 +66,22 @@ export class JobStore {
 
   select(jobId: number): void {
     this.selectedJobId.set(jobId);
+  }
+
+  setViewMode(mode: JobViewMode): void {
+    this.viewMode.set(mode);
+    try {
+      localStorage.setItem(VIEW_MODE_KEY, mode);
+    } catch {
+      // Ohne localStorage gilt die Wahl nur bis zum Neuladen.
+    }
+  }
+}
+
+function restoreViewMode(): JobViewMode {
+  try {
+    return localStorage.getItem(VIEW_MODE_KEY) === 'table' ? 'table' : 'tiles';
+  } catch {
+    return 'tiles';
   }
 }

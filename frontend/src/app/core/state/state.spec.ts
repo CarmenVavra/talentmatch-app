@@ -32,6 +32,18 @@ describe('JobStore', () => {
     expect(store.pipelineJobId()).toBe(3);
   });
 
+  it('persists the chosen view mode', () => {
+    localStorage.removeItem('talentmatch.jobs.viewMode');
+    try {
+      expect(store.viewMode()).toBe('tiles');
+      store.setViewMode('table');
+      expect(store.viewMode()).toBe('table');
+      expect(localStorage.getItem('talentmatch.jobs.viewMode')).toBe('table');
+    } finally {
+      localStorage.removeItem('talentmatch.jobs.viewMode');
+    }
+  });
+
   it('remembers the selected job for the pipeline link', () => {
     store.select(9);
     expect(store.pipelineJobId()).toBe(9);
