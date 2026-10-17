@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -20,12 +21,14 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import de.talentmatch.ai.MatchAssessment;
 import de.talentmatch.ai.QuestionSuggestion;
 import de.talentmatch.ai.RecruitingAiService;
+import de.talentmatch.analysis.SkillMatcher.SkillMatch;
 import de.talentmatch.application.Application;
 import de.talentmatch.application.ApplicationRepository;
 import de.talentmatch.application.ApplicationStatus;
@@ -65,7 +68,7 @@ class AnalysisServiceTest {
     @Test
     void analyzeParsesResumeCombinesScoresAndMovesNewApplicationToMatched() {
         when(aiService.parseResume(anyString())).thenReturn(profile());
-        when(aiService.assessMatch(any(), any(), any())).thenReturn(new MatchAssessment(80, 90, 70,
+        when(aiService.assessMatch(any(), any(), any(), any())).thenReturn(new MatchAssessment(80, 90, 70,
                 "Starke Passung.", List.of("Kündigungsfrist 3 Monate"),
                 List.of(new QuestionSuggestion("Fehlender Skill", "Wie gut kennen Sie AWS?"))));
 
@@ -85,10 +88,53 @@ class AnalysisServiceTest {
     }
 
     @Test
+    void analyzeCountsSkillProfileSkillsAndPassesCoverLetterOnlyAsContext() {
+        application.getCandidate().setSkillProfileText("Skills: AWS, Terraform");
+        application.getCandidate().setCoverLetterText("Ich möchte Cloud-Plattformen bauen.");
+        when(aiService.parseResume(anyString())).thenReturn(profile());
+        when(aiService.extractSkills("Skills: AWS, Terraform")).thenReturn(List.of("AWS", "Terraform"));
+        ArgumentCaptor<SkillMatch> skillMatch = ArgumentCaptor.forClass(SkillMatch.class);
+        when(aiService.assessMatch(any(), any(), skillMatch.capture(),
+                eq(Optional.of("Ich möchte Cloud-Plattformen bauen."))))
+                .thenReturn(new MatchAssessment(80, 90, 70, "Motiviert.", List.of(), List.of()));
+
+        ApplicationDetailDto detail = service.analyze(1L);
+
+        // Skills: 4 von 4 (AWS laut Skill-Profil) = 100 → 0.5*100 + 0.3*80 + 0.1*90 + 0.1*70 = 90
+        assertThat(detail.analysis().skillsScore()).isEqualTo(100);
+        assertThat(detail.analysis().overallScore()).isEqualTo(90);
+        assertThat(detail.analysis().skillsFromSkillProfile()).containsExactly("AWS");
+        assertThat(skillMatch.getValue().fromSkillProfile()).containsExactly("AWS");
+        assertThat(application.getCandidate().getSkillProfileSkills()).containsExactly("AWS", "Terraform");
+    }
+
+    @Test
+    void analyzeReusesExtractedSkillProfileSkills() {
+        application.getCandidate().setSkillProfileText("Skills: AWS");
+        application.getCandidate().setSkillProfileSkills(List.of("AWS"));
+        when(aiService.parseResume(anyString())).thenReturn(profile());
+        when(aiService.assessMatch(any(), any(), any(), eq(Optional.empty())))
+                .thenReturn(new MatchAssessment(50, 50, 50, "Ok.", List.of(), List.of()));
+
+        assertThat(service.analyze(1L).analysis().skillsFromSkillProfile()).containsExactly("AWS");
+        verify(aiService, never()).extractSkills(anyString());
+    }
+
+    @Test
+    void analyzeWithoutSupportingDocumentsSkipsSkillExtraction() {
+        when(aiService.parseResume(anyString())).thenReturn(profile());
+        when(aiService.assessMatch(any(), any(), any(), eq(Optional.empty())))
+                .thenReturn(new MatchAssessment(50, 50, 50, "Ok.", List.of(), List.of()));
+
+        assertThat(service.analyze(1L).analysis().skillsFromSkillProfile()).isEmpty();
+        verify(aiService, never()).extractSkills(anyString());
+    }
+
+    @Test
     void analyzeKeepsStatusOfApplicationsBeyondNew() {
         application.setStatus(ApplicationStatus.INTERVIEW);
         when(aiService.parseResume(anyString())).thenReturn(profile());
-        when(aiService.assessMatch(any(), any(), any()))
+        when(aiService.assessMatch(any(), any(), any(), any()))
                 .thenReturn(new MatchAssessment(50, 50, 50, "Ok.", List.of(), List.of()));
 
         assertThat(service.analyze(1L).status()).isEqualTo(ApplicationStatus.INTERVIEW);
@@ -112,7 +158,7 @@ class AnalysisServiceTest {
     @Test
     void generateMoreQuestionsAppendsToExistingQuestions() {
         when(aiService.parseResume(anyString())).thenReturn(profile());
-        when(aiService.assessMatch(any(), any(), any())).thenReturn(new MatchAssessment(60, 60, 60, "Ok.",
+        when(aiService.assessMatch(any(), any(), any(), any())).thenReturn(new MatchAssessment(60, 60, 60, "Ok.",
                 List.of(), List.of(new QuestionSuggestion("Technik", "Frage 1"))));
         service.analyze(1L);
         when(aiService.generateMoreQuestions(any(), any(), anyList()))

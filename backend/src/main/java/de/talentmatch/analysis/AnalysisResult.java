@@ -47,6 +47,11 @@ public class AnalysisResult {
     @Column(length = 4000)
     private List<String> missingSkills = new ArrayList<>();
 
+    /** Teilmenge der passenden Skills, die nur das Skill-Profil (Selbstauskunft) belegt. */
+    @Convert(converter = StringListConverter.class)
+    @Column(length = 4000)
+    private List<String> skillsFromSkillProfile = new ArrayList<>();
+
     @Convert(converter = StringListConverter.class)
     @Column(length = 4000)
     private List<String> riskFactors = new ArrayList<>();
@@ -77,6 +82,13 @@ public class AnalysisResult {
         this.suggestedQuestions = new ArrayList<>(suggestedQuestions);
         this.model = model;
         this.analyzedAt = analyzedAt;
+    }
+
+    /**
+     * Markiert passende Skills, die nur im Skill-Profil stehen (für HR als „laut Skill-Profil“ sichtbar).
+     */
+    public void markFromSkillProfile(List<String> skills) {
+        this.skillsFromSkillProfile = new ArrayList<>(skills);
     }
 
     public void markQuestion(int index, boolean discussed) {
@@ -116,6 +128,10 @@ public class AnalysisResult {
 
     public List<String> getMissingSkills() {
         return List.copyOf(missingSkills);
+    }
+
+    public List<String> getSkillsFromSkillProfile() {
+        return skillsFromSkillProfile == null ? List.of() : List.copyOf(skillsFromSkillProfile);
     }
 
     public List<String> getRiskFactors() {

@@ -11,6 +11,8 @@ import de.talentmatch.application.api.ApplicationSummaryDto;
 import de.talentmatch.common.exception.BusinessRuleException;
 import de.talentmatch.common.exception.ResourceNotFoundException;
 import de.talentmatch.job.JobPositionRepository;
+import de.talentmatch.resume.DocumentType;
+import de.talentmatch.resume.ResumeDocument;
 import de.talentmatch.resume.ResumeFile;
 
 /**
@@ -73,7 +75,24 @@ public class ApplicationService {
     public Optional<ResumeFile> findResume(Long id) {
         return applicationRepository.findWithResumeById(id)
                 .flatMap(Application::getResumeDocument)
-                .map(doc -> new ResumeFile(doc.getFileName(), doc.getContentType(), doc.getData()));
+                .map(ApplicationService::toFile);
+    }
+
+    /**
+     * Original-PDF einer Bewerbungsunterlage; das PDF wird erst beim Zugriff (eine Abfrage) nachgeladen.
+     */
+    @Transactional(readOnly = true)
+    public Optional<ResumeFile> findDocument(Long id, DocumentType type) {
+        if (type == DocumentType.RESUME) {
+            return findResume(id);
+        }
+        return applicationRepository.findById(id)
+                .flatMap(application -> application.getDocument(type))
+                .map(ApplicationService::toFile);
+    }
+
+    private static ResumeFile toFile(ResumeDocument document) {
+        return new ResumeFile(document.getFileName(), document.getContentType(), document.getData());
     }
 
     private Application loadWithDetails(Long id) {

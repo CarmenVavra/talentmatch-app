@@ -11,11 +11,13 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 /**
- * Regelbasierter Abgleich der geforderten Skills einer Stelle mit den Technologien aus dem Lebenslauf.
+ * Regelbasierter Abgleich der geforderten Skills einer Stelle mit den Technologien aus dem Lebenslauf
+ * und – optional – den Skills aus dem Skill-Profil der Bewerber:in.
  * <p>
  * Ein geforderter Skill gilt als erfüllt, wenn alle seine Wort-Token (ohne Versionsnummern, Synonyme normalisiert)
  * in einer Technologie der Kandidat:in vorkommen. Beispiel: „Spring Boot 3“ erfüllt „Spring Boot“,
- * „JavaScript“ erfüllt aber nicht „Java“.
+ * „JavaScript“ erfüllt aber nicht „Java“. Skills, die nur im Skill-Profil (Selbstauskunft) stehen, zählen voll
+ * für den Skill-Score, werden aber separat ausgewiesen.
  */
 @Component
 public class SkillMatcher {
@@ -34,21 +36,32 @@ public class SkillMatcher {
     private static final Set<String> STOP_WORDS = Set.of("und", "and", "mit", "the", "der", "die", "das");
 
     public SkillMatch match(List<String> requiredSkills, List<String> candidateSkills) {
-        List<Set<String>> candidateTokens = candidateSkills.stream().map(SkillMatcher::tokens).toList();
+        return match(requiredSkills, candidateSkills, List.of());
+    }
+
+    public SkillMatch match(List<String> requiredSkills, List<String> resumeSkills, List<String> skillProfileSkills) {
+        List<Set<String>> resumeTokens = resumeSkills.stream().map(SkillMatcher::tokens).toList();
+        List<Set<String>> profileTokens = skillProfileSkills.stream().map(SkillMatcher::tokens).toList();
         List<String> matched = new ArrayList<>();
         List<String> missing = new ArrayList<>();
+        List<String> fromSkillProfile = new ArrayList<>();
         for (String required : requiredSkills) {
             Set<String> requiredTokens = tokens(required);
-            boolean found = !requiredTokens.isEmpty()
-                    && candidateTokens.stream().anyMatch(tokens -> tokens.containsAll(requiredTokens));
-            if (found) {
+            if (covers(resumeTokens, requiredTokens)) {
                 matched.add(required);
+            } else if (covers(profileTokens, requiredTokens)) {
+                matched.add(required);
+                fromSkillProfile.add(required);
             } else {
                 missing.add(required);
             }
         }
         int score = requiredSkills.isEmpty() ? 100 : Math.round(100f * matched.size() / requiredSkills.size());
-        return new SkillMatch(List.copyOf(matched), List.copyOf(missing), score);
+        return new SkillMatch(List.copyOf(matched), List.copyOf(missing), List.copyOf(fromSkillProfile), score);
+    }
+
+    private static boolean covers(List<Set<String>> candidateTokens, Set<String> requiredTokens) {
+        return !requiredTokens.isEmpty() && candidateTokens.stream().anyMatch(t -> t.containsAll(requiredTokens));
     }
 
     static Set<String> tokens(String skill) {
@@ -68,7 +81,8 @@ public class SkillMatcher {
 
     /**
      * Ergebnis des Abgleichs: erfüllte und fehlende Anforderungen sowie Skill-Score (0–100).
+     * {@code fromSkillProfile} ist die Teilmenge von {@code matched}, die nur das Skill-Profil belegt.
      */
-    public record SkillMatch(List<String> matched, List<String> missing, int score) {
+    public record SkillMatch(List<String> matched, List<String> missing, List<String> fromSkillProfile, int score) {
     }
 }

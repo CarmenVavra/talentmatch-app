@@ -33,6 +33,7 @@ import de.talentmatch.common.exception.BusinessRuleException;
 import de.talentmatch.common.exception.ResourceNotFoundException;
 import de.talentmatch.job.JobPosition;
 import de.talentmatch.job.JobPositionRepository;
+import de.talentmatch.resume.ApplicantDocuments;
 import de.talentmatch.resume.ResumeUploadService;
 
 class ApplicantServiceTest {
@@ -95,9 +96,10 @@ class ApplicantServiceTest {
         Application created = application(ApplicationStatus.NEW);
         ReflectionTestUtils.setField(created, "id", 77L);
         MockMultipartFile file = new MockMultipartFile("file", "cv.pdf", "application/pdf", new byte[] {1});
-        when(uploadService.submitForApplicant(job, account, file)).thenReturn(created);
+        ApplicantDocuments documents = ApplicantDocuments.resumeOnly(file);
+        when(uploadService.submitForApplicant(job, account, documents)).thenReturn(created);
 
-        MyApplicationDto result = service.apply(EMAIL, 3L, file);
+        MyApplicationDto result = service.apply(EMAIL, 3L, documents);
 
         assertThat(result.status()).isEqualTo(ApplicantStatus.RECEIVED);
         assertThat(result.jobTitle()).isEqualTo("Data Engineer");

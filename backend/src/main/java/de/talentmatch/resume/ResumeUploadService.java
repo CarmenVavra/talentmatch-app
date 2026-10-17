@@ -24,7 +24,7 @@ import de.talentmatch.job.JobPosition;
 import de.talentmatch.job.JobPositionRepository;
 
 /**
- * Nimmt PDF-Lebensläufe entgegen: Validierung → Text-Extraktion (Tika) → neue Bewerbung mit Status NEW.
+ * Nimmt Bewerbungsunterlagen (PDF) entgegen: Validierung → Text-Extraktion (Tika) → neue Bewerbung mit Status NEW.
  * Die KI-Analyse folgt separat (HR: {@code POST /api/applications/{id}/analyze}, Portal: automatisch).
  */
 @Service
@@ -61,15 +61,21 @@ public class ResumeUploadService {
     }
 
     /**
-     * Bewerbung über das Bewerber-Portal: Stammdaten stammen aus dem Benutzerkonto.
+     * Bewerbung über das Bewerber-Portal: Stammdaten stammen aus dem Benutzerkonto; Skill-Profil und Anschreiben
+     * sind optional und werden ebenfalls als PDF gespeichert und ausgelesen.
      */
     @Transactional
-    public Application submitForApplicant(JobPosition job, UserAccount applicant, MultipartFile file) {
+    public Application submitForApplicant(JobPosition job, UserAccount applicant, ApplicantDocuments documents) {
         Candidate candidate = new Candidate(applicant.getFirstName(), applicant.getLastName());
         candidate.setEmail(applicant.getEmail());
         Application application = new Application(job, candidate, LocalDateTime.now(clock));
         application.setApplicantAccount(applicant);
-        return attachResume(application, file);
+        applyResume(application, documents.resume());
+        documents.skillProfile().ifPresent(file ->
+                candidate.setSkillProfileText(attachDocument(application, DocumentType.SKILL_PROFILE, file)));
+        documents.coverLetter().ifPresent(file ->
+                candidate.setCoverLetterText(attachDocument(application, DocumentType.COVER_LETTER, file)));
+        return applicationRepository.save(application);
     }
 
     private Application createApplication(JobPosition job, MultipartFile file, Candidate candidate) {
@@ -77,43 +83,67 @@ public class ResumeUploadService {
     }
 
     private Application attachResume(Application application, MultipartFile file) {
-        byte[] data = validate(file);
-        String text = textExtractor.extractText(data);
-        if (text.isBlank()) {
-            throw new InvalidFileException("Im PDF wurde kein Text gefunden (gescanntes Dokument?).");
-        }
+        applyResume(application, file);
+        return applicationRepository.save(application);
+    }
+
+    private void applyResume(Application application, MultipartFile file) {
+        String text = attachDocument(application, DocumentType.RESUME, file);
         Candidate candidate = application.getCandidate();
         candidate.setRawResumeText(text);
         if (candidate.getEmail() == null) {
             ResumeHeuristics.findEmail(text).ifPresent(candidate::setEmail);
         }
         ResumeHeuristics.findPhone(text).ifPresent(candidate::setPhone);
-        application.setResumeDocument(new ResumeDocument(fileName(file), PDF_CONTENT_TYPE, data));
-        return applicationRepository.save(application);
+    }
+
+    /**
+     * Validiert das PDF, hinterlegt es an der Bewerbung und liefert den extrahierten Text.
+     */
+    private String attachDocument(Application application, DocumentType type, MultipartFile file) {
+        byte[] data = validate(type, file);
+        String text = textExtractor.extractText(data);
+        if (text.isBlank()) {
+            throw new InvalidFileException(prefix(type) + "Im PDF wurde kein Text gefunden (gescanntes Dokument?).");
+        }
+        application.setDocument(type, new ResumeDocument(fileName(type, file), PDF_CONTENT_TYPE, data));
+        return text;
+    }
+
+    private static String fileName(DocumentType type, MultipartFile file) {
+        return file == null || file.getOriginalFilename() == null
+                ? type.defaultFileName() : file.getOriginalFilename();
     }
 
     private static String fileName(MultipartFile file) {
-        return file == null || file.getOriginalFilename() == null ? "Lebenslauf.pdf" : file.getOriginalFilename();
+        return fileName(DocumentType.RESUME, file);
     }
 
-    private byte[] validate(MultipartFile file) {
+    /**
+     * Fehlermeldungen zu Zusatzunterlagen nennen das betroffene Dokument.
+     */
+    private static String prefix(DocumentType type) {
+        return type == DocumentType.RESUME ? "" : type.label() + ": ";
+    }
+
+    private byte[] validate(DocumentType type, MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new InvalidFileException("Die Datei ist leer.");
+            throw new InvalidFileException(prefix(type) + "Die Datei ist leer.");
         }
         if (file.getSize() > properties.upload().maxFileSizeBytes()) {
-            throw new InvalidFileException("Die Datei ist größer als 10 MB.");
+            throw new InvalidFileException(prefix(type) + "Die Datei ist größer als 10 MB.");
         }
         String name = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase(Locale.ROOT);
         byte[] data;
         try {
             data = file.getBytes();
         } catch (IOException ex) {
-            throw new InvalidFileException("Die Datei konnte nicht gelesen werden.", ex);
+            throw new InvalidFileException(prefix(type) + "Die Datei konnte nicht gelesen werden.", ex);
         }
         boolean pdfMagic = data.length >= PDF_MAGIC.length
                 && Arrays.equals(Arrays.copyOf(data, PDF_MAGIC.length), PDF_MAGIC);
         if (!name.endsWith(".pdf") || !pdfMagic) {
-            throw new InvalidFileException("Falscher Dateityp – nur PDF-Dateien sind erlaubt.");
+            throw new InvalidFileException(prefix(type) + "Falscher Dateityp – nur PDF-Dateien sind erlaubt.");
         }
         return data;
     }

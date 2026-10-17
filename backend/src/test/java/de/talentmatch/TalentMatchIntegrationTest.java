@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -188,6 +189,79 @@ class TalentMatchIntegrationTest {
                 .andExpect(jsonPath("$[?(@.candidate.lastName == 'Neu')].candidate.firstName").value("Lea"));
         mockMvc.perform(get("/api/applicant/jobs").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void applicantSubmitsSkillProfileAndCoverLetterWhichHrCanOpen() throws Exception {
+        String register = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Tom","lastName":"Unterlagen","email":"tom.unterlagen@example.org",
+                                 "password":"bewerbung-2026"}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String token = JsonPath.read(register, "$.token");
+        String jobs = mockMvc.perform(get("/api/applicant/jobs").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andReturn().getResponse().getContentAsString();
+        Integer jobId = JsonPath.read(jobs, "$[2].id");
+        MockMultipartFile resume = new MockMultipartFile("file", "cv.pdf", "application/pdf",
+                pdf("Tom Unterlagen - Python, SQL"));
+        MockMultipartFile skillProfile = new MockMultipartFile("skillProfile", "skills.pdf", "application/pdf",
+                pdf("Skills: Python, Spark, Airflow"));
+        MockMultipartFile coverLetter = new MockMultipartFile("coverLetter", "anschreiben.pdf", "application/pdf",
+                pdf("Ich moechte Datenpipelines bauen."));
+
+        // Ein ungültiges Zusatzdokument verhindert die gesamte Bewerbung
+        MockMultipartFile wordFile = new MockMultipartFile("skillProfile", "skills.docx", "application/msword",
+                new byte[] {1});
+        mockMvc.perform(multipart("/api/applicant/jobs/{id}/applications", jobId).file(resume).file(wordFile)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("Skill-Profil:")));
+
+        mockMvc.perform(multipart("/api/applicant/jobs/{id}/applications", jobId)
+                        .file(resume).file(skillProfile).file(coverLetter)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.skillProfileFileName").value("skills.pdf"))
+                .andExpect(jsonPath("$.coverLetterFileName").value("anschreiben.pdf"));
+
+        String hrToken = login(hrEmail, hrPassword);
+        String list = mockMvc.perform(get("/api/jobs/{id}/applications", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andReturn().getResponse().getContentAsString();
+        List<Integer> ids = JsonPath.read(list, "$[?(@.candidate.lastName == 'Unterlagen')].id");
+        assertThat(ids).hasSize(1);
+        Integer applicationId = ids.getFirst();
+
+        mockMvc.perform(get("/api/applications/{id}", applicationId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resumeFileName").value("cv.pdf"))
+                .andExpect(jsonPath("$.skillProfileFileName").value("skills.pdf"))
+                .andExpect(jsonPath("$.coverLetterFileName").value("anschreiben.pdf"));
+        mockMvc.perform(get("/api/applications/{id}/skill-profile", applicationId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("skills.pdf")));
+        mockMvc.perform(get("/api/applications/{id}/cover-letter", applicationId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_TYPE, "application/pdf"));
+        mockMvc.perform(get("/api/applications/{id}/skill-profile", applicationId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void documentEndpointsReturn404WhenNothingWasSubmitted() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        String all = mockMvc.perform(get("/api/applications").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andReturn().getResponse().getContentAsString();
+        Integer seededId = JsonPath.read(all, "$[-1].id");
+
+        mockMvc.perform(get("/api/applications/{id}/cover-letter", seededId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
     }
 
     @Test

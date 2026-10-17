@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 
+import de.talentmatch.analysis.SkillMatcher.SkillMatch;
 import de.talentmatch.candidate.CandidateProfile;
 import de.talentmatch.common.exception.AiAnalysisException;
 import de.talentmatch.job.JobPosition;
@@ -47,6 +49,59 @@ class RecruitingAiServiceTest {
     }
 
     @Test
+    void extractSkillsReturnsSkillsFromSkillProfile() {
+        AtomicReference<Prompt> captured = new AtomicReference<>();
+        ChatModel model = prompt -> {
+            captured.set(prompt);
+            return response("{\"skills\":[\"AWS\",\"Terraform\"]}");
+        };
+        RecruitingAiService service = new RecruitingAiService(ChatClient.builder(model), "sk-test", "gpt-4o");
+
+        assertThat(service.extractSkills("Cloud: AWS, Terraform")).containsExactly("AWS", "Terraform");
+        assertThat(captured.get().getContents()).contains("Skill-Profil").contains("Cloud: AWS, Terraform");
+    }
+
+    @Test
+    void assessMatchMarksSelfReportedSkillsAndKeepsCoverLetterOutOfScores() {
+        AtomicReference<Prompt> captured = new AtomicReference<>();
+        ChatModel model = prompt -> {
+            captured.set(prompt);
+            return response("""
+                    {"experienceScore":70,"educationScore":80,"languagesScore":90,"summary":"Gut.",
+                     "riskFactors":[],"interviewQuestions":[]}
+                    """);
+        };
+        RecruitingAiService service = new RecruitingAiService(ChatClient.builder(model), "sk-test", "gpt-4o");
+
+        service.assessMatch(profile(), job(), new SkillMatch(List.of("SQL"), List.of(), List.of("SQL"), 100),
+                Optional.of("Ich brenne für Daten."));
+
+        assertThat(captured.get().getContents())
+                .contains("nur im Skill-Profil angegeben (Selbstauskunft, im Lebenslauf nicht belegt): SQL")
+                .contains("Ich brenne für Daten.")
+                .contains("NICHT für die Teil-Scores");
+    }
+
+    @Test
+    void assessMatchWithoutSupportingDocumentsOmitsTheirSections() {
+        AtomicReference<Prompt> captured = new AtomicReference<>();
+        ChatModel model = prompt -> {
+            captured.set(prompt);
+            return response("""
+                    {"experienceScore":70,"educationScore":80,"languagesScore":90,"summary":"Gut.",
+                     "riskFactors":[],"interviewQuestions":[]}
+                    """);
+        };
+        RecruitingAiService service = new RecruitingAiService(ChatClient.builder(model), "sk-test", "gpt-4o");
+
+        service.assessMatch(profile(), job(), new SkillMatch(List.of("SQL"), List.of(), List.of(), 100),
+                Optional.empty());
+
+        assertThat(captured.get().getContents()).doesNotContain("Anschreiben der Bewerber:in")
+                .doesNotContain("Selbstauskunft, im Lebenslauf");
+    }
+
+    @Test
     void failsFastWhenNoApiKeyIsConfigured() {
         ChatModel model = prompt -> {
             throw new IllegalStateException("darf nicht aufgerufen werden");
@@ -65,14 +120,18 @@ class RecruitingAiServiceTest {
         };
         RecruitingAiService service = new RecruitingAiService(ChatClient.builder(model), "sk-test", "gpt-4o");
 
-        CandidateProfile profile = new CandidateProfile("A", "B", null, null, null, null, null, List.of(), List.of(),
-                null, List.of(), null);
-        JobPosition job = new JobPosition("Titel", "Data", "Mid", "Berlin", null, List.of("SQL"),
-                LocalDate.of(2026, 1, 1));
-
-        assertThatThrownBy(() -> service.generateMoreQuestions(profile, job, List.of()))
+        assertThatThrownBy(() -> service.generateMoreQuestions(profile(), job(), List.of()))
                 .isInstanceOf(AiAnalysisException.class)
                 .hasMessageContaining("fehlgeschlagen");
+    }
+
+    private static CandidateProfile profile() {
+        return new CandidateProfile("A", "B", null, null, null, null, null, List.of(), List.of(), null, List.of(),
+                null);
+    }
+
+    private static JobPosition job() {
+        return new JobPosition("Titel", "Data", "Mid", "Berlin", null, List.of("SQL"), LocalDate.of(2026, 1, 1));
     }
 
     private static ChatResponse response(String content) {

@@ -15,5 +15,7 @@ public record MyApplicationDto(
         String location,
         ApplicantStatus status,
         LocalDateTime submittedAt,
-        String resumeFileName) {
+        String resumeFileName,
+        String skillProfileFileName,
+        String coverLetterFileName) {
 }

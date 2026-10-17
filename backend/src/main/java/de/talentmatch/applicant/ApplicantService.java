@@ -7,7 +7,6 @@ import java.util.Set;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import de.talentmatch.applicant.api.MyApplicationDto;
 import de.talentmatch.applicant.api.OpenJobDto;
@@ -19,6 +18,8 @@ import de.talentmatch.common.exception.BusinessRuleException;
 import de.talentmatch.common.exception.ResourceNotFoundException;
 import de.talentmatch.job.JobPosition;
 import de.talentmatch.job.JobPositionRepository;
+import de.talentmatch.resume.ApplicantDocuments;
+import de.talentmatch.resume.DocumentType;
 import de.talentmatch.resume.ResumeUploadService;
 
 /**
@@ -65,14 +66,14 @@ public class ApplicantService {
      * Reicht eine Bewerbung ein. Die KI-Analyse startet nach dem Commit automatisch im Hintergrund.
      */
     @Transactional
-    public MyApplicationDto apply(String email, Long jobId, MultipartFile resume) {
+    public MyApplicationDto apply(String email, Long jobId, ApplicantDocuments documents) {
         UserAccount applicant = loadAccount(email);
         JobPosition job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Stelle", jobId));
         if (applicationRepository.existsByJobPositionIdAndApplicantAccountId(jobId, applicant.getId())) {
             throw new BusinessRuleException("Sie haben sich auf diese Stelle bereits beworben.");
         }
-        Application application = uploadService.submitForApplicant(job, applicant, resume);
+        Application application = uploadService.submitForApplicant(job, applicant, documents);
         events.publishEvent(new ApplicationSubmittedEvent(application.getId()));
         return toMyApplication(application);
     }
@@ -91,6 +92,8 @@ public class ApplicantService {
         JobPosition job = application.getJobPosition();
         return new MyApplicationDto(application.getId(), job.getId(), job.getTitle(), job.getDepartment(),
                 job.getLocation(), ApplicantStatus.from(application.getStatus()), application.getCreatedAt(),
-                application.getResumeFileName().orElse(null));
+                application.getResumeFileName().orElse(null),
+                application.getDocumentFileName(DocumentType.SKILL_PROFILE).orElse(null),
+                application.getDocumentFileName(DocumentType.COVER_LETTER).orElse(null));
     }
 }

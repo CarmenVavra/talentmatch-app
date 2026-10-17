@@ -1,6 +1,7 @@
 package de.talentmatch.application;
 
 import static de.talentmatch.support.WebMvcSecurityTestConfig.hrManager;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -31,6 +32,7 @@ import de.talentmatch.application.api.ApplicationSummaryDto;
 import de.talentmatch.application.api.CandidateSummaryDto;
 import de.talentmatch.common.exception.AiAnalysisException;
 import de.talentmatch.common.exception.InvalidFileException;
+import de.talentmatch.resume.DocumentType;
 import de.talentmatch.resume.ResumeFile;
 import de.talentmatch.resume.ResumeUploadService;
 import de.talentmatch.support.WebMvcSecurityTestConfig;
@@ -111,13 +113,32 @@ class ApplicationControllerTest {
 
     @Test
     void resumeIsServedInlineAsPdf() throws Exception {
-        when(applicationService.findResume(5L))
+        when(applicationService.findDocument(5L, DocumentType.RESUME))
                 .thenReturn(Optional.of(new ResumeFile("cv.pdf", "application/pdf", new byte[] {37, 80, 68, 70})));
 
         mockMvc.perform(get("/api/applications/5/resume").with(hrManager()))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "application/pdf"))
                 .andExpect(header().string("Content-Disposition", "inline; filename=\"cv.pdf\""));
+    }
+
+    @Test
+    void skillProfileIsServedInlineAsPdf() throws Exception {
+        when(applicationService.findDocument(5L, DocumentType.SKILL_PROFILE)).thenReturn(
+                Optional.of(new ResumeFile("skills.pdf", "application/pdf", new byte[] {37, 80, 68, 70})));
+
+        mockMvc.perform(get("/api/applications/5/skill-profile").with(hrManager()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "inline; filename=\"skills.pdf\""));
+    }
+
+    @Test
+    void missingCoverLetterReturns404() throws Exception {
+        when(applicationService.findDocument(5L, DocumentType.COVER_LETTER)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/applications/5/cover-letter").with(hrManager()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value(containsString("Anschreiben")));
     }
 
     private static ApplicationSummaryDto summary(ApplicationStatus status) {

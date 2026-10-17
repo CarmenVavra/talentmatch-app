@@ -1,5 +1,6 @@
 package de.talentmatch.candidate;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +11,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+
+import de.talentmatch.common.persistence.StringListConverter;
 
 /**
  * Bewerber:in mit Rohtext des Lebenslaufs und dem per KI extrahierten Profil.
@@ -46,6 +49,19 @@ public class Candidate {
     @Convert(converter = CandidateProfileConverter.class)
     @Column(length = 50_000)
     private CandidateProfile parsedProfile;
+
+    /** Text des optionalen Skill-Profils (Selbstauskunft der Bewerber:in). */
+    @Column(length = 200_000)
+    private String skillProfileText;
+
+    /** Per KI aus dem Skill-Profil extrahierte Skills (leer, solange nicht analysiert). */
+    @Convert(converter = StringListConverter.class)
+    @Column(length = 4000)
+    private List<String> skillProfileSkills = new ArrayList<>();
+
+    /** Text des optionalen Anschreibens – fließt nur qualitativ in die Analyse ein. */
+    @Column(length = 200_000)
+    private String coverLetterText;
 
     protected Candidate() {
     }
@@ -142,5 +158,29 @@ public class Candidate {
 
     public Optional<CandidateProfile> getParsedProfile() {
         return Optional.ofNullable(parsedProfile);
+    }
+
+    public Optional<String> getSkillProfileText() {
+        return Optional.ofNullable(skillProfileText).filter(text -> !text.isBlank());
+    }
+
+    public void setSkillProfileText(String skillProfileText) {
+        this.skillProfileText = skillProfileText;
+    }
+
+    public List<String> getSkillProfileSkills() {
+        return skillProfileSkills == null ? List.of() : List.copyOf(skillProfileSkills);
+    }
+
+    public void setSkillProfileSkills(List<String> skillProfileSkills) {
+        this.skillProfileSkills = new ArrayList<>(skillProfileSkills);
+    }
+
+    public Optional<String> getCoverLetterText() {
+        return Optional.ofNullable(coverLetterText).filter(text -> !text.isBlank());
+    }
+
+    public void setCoverLetterText(String coverLetterText) {
+        this.coverLetterText = coverLetterText;
     }
 }

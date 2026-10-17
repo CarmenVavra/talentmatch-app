@@ -11,7 +11,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * Original-PDF eines Lebenslaufs (für die PDF-Vorschau).
+ * Original-PDF einer Bewerbungsunterlage (Lebenslauf, Skill-Profil oder Anschreiben) für die PDF-Vorschau.
  */
 @Entity
 @Table(name = "resume_document")

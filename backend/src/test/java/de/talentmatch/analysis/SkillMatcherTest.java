@@ -49,4 +49,15 @@ class SkillMatcherTest {
         assertThat(SkillMatcher.tokens("C++")).containsExactly("cpp");
         assertThat(SkillMatcher.tokens("REST / OpenAPI")).containsExactlyInAnyOrder("rest", "openapi");
     }
+
+    @Test
+    void skillProfileFillsGapsButResumeTakesPrecedence() {
+        SkillMatch result = matcher.match(List.of("Java", "AWS", "Terraform"), List.of("Java 21"),
+                List.of("Java", "AWS"));
+
+        assertThat(result.matched()).containsExactly("Java", "AWS");
+        assertThat(result.fromSkillProfile()).containsExactly("AWS");
+        assertThat(result.missing()).containsExactly("Terraform");
+        assertThat(result.score()).isEqualTo(67);
+    }
 }

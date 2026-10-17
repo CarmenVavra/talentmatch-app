@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import de.talentmatch.applicant.api.MyApplicationDto;
 import de.talentmatch.applicant.api.OpenJobDto;
+import de.talentmatch.resume.ApplicantDocuments;
 
 /**
  * Bewerber-Portal (Rolle APPLICANT). Alle Daten sind auf das angemeldete Konto beschränkt.
@@ -44,7 +45,10 @@ public class ApplicantController {
     @PostMapping(path = "/jobs/{jobId}/applications", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public MyApplicationDto apply(@AuthenticationPrincipal Jwt jwt, @PathVariable Long jobId,
-                                  @RequestPart("file") MultipartFile file) {
-        return applicantService.apply(jwt.getSubject(), jobId, file);
+                                  @RequestPart("file") MultipartFile file,
+                                  @RequestPart(name = "skillProfile", required = false) MultipartFile skillProfile,
+                                  @RequestPart(name = "coverLetter", required = false) MultipartFile coverLetter) {
+        return applicantService.apply(jwt.getSubject(), jobId,
+                ApplicantDocuments.of(file, skillProfile, coverLetter));
     }
 }

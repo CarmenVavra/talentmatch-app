@@ -28,6 +28,7 @@ import de.talentmatch.application.api.UpdateNotesRequest;
 import de.talentmatch.application.api.UpdateQuestionRequest;
 import de.talentmatch.application.api.UpdateStatusRequest;
 import de.talentmatch.common.exception.ResourceNotFoundException;
+import de.talentmatch.resume.DocumentType;
 import de.talentmatch.resume.ResumeFile;
 import de.talentmatch.resume.ResumeUploadService;
 
@@ -99,8 +100,22 @@ public class ApplicationController {
 
     @GetMapping("/applications/{id}/resume")
     public ResponseEntity<byte[]> resume(@PathVariable Long id) {
-        ResumeFile file = applicationService.findResume(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Lebenslauf-PDF der Bewerbung", id));
+        return document(id, DocumentType.RESUME);
+    }
+
+    @GetMapping("/applications/{id}/skill-profile")
+    public ResponseEntity<byte[]> skillProfile(@PathVariable Long id) {
+        return document(id, DocumentType.SKILL_PROFILE);
+    }
+
+    @GetMapping("/applications/{id}/cover-letter")
+    public ResponseEntity<byte[]> coverLetter(@PathVariable Long id) {
+        return document(id, DocumentType.COVER_LETTER);
+    }
+
+    private ResponseEntity<byte[]> document(Long id, DocumentType type) {
+        ResumeFile file = applicationService.findDocument(id, type)
+                .orElseThrow(() -> new ResourceNotFoundException(type.label() + "-PDF der Bewerbung", id));
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION,

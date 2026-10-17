@@ -22,6 +22,7 @@ import de.talentmatch.analysis.AnalysisResult;
 import de.talentmatch.auth.UserAccount;
 import de.talentmatch.candidate.Candidate;
 import de.talentmatch.job.JobPosition;
+import de.talentmatch.resume.DocumentType;
 import de.talentmatch.resume.ResumeDocument;
 
 /**
@@ -61,6 +62,18 @@ public class Application {
 
     /** Dateiname des Original-PDFs (redundant gespeichert, damit das PDF für Listen nicht geladen wird). */
     private String resumeFileName;
+
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "skill_profile_document_id", unique = true)
+    private ResumeDocument skillProfileDocument;
+
+    private String skillProfileFileName;
+
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "cover_letter_document_id", unique = true)
+    private ResumeDocument coverLetterDocument;
+
+    private String coverLetterFileName;
 
     @Column(length = 10_000)
     private String interviewNotes;
@@ -118,16 +131,52 @@ public class Application {
     }
 
     public Optional<ResumeDocument> getResumeDocument() {
-        return Optional.ofNullable(resumeDocument);
+        return getDocument(DocumentType.RESUME);
     }
 
     public void setResumeDocument(ResumeDocument resumeDocument) {
-        this.resumeDocument = resumeDocument;
-        this.resumeFileName = resumeDocument == null ? null : resumeDocument.getFileName();
+        setDocument(DocumentType.RESUME, resumeDocument);
     }
 
     public Optional<String> getResumeFileName() {
-        return Optional.ofNullable(resumeFileName);
+        return getDocumentFileName(DocumentType.RESUME);
+    }
+
+    public Optional<ResumeDocument> getDocument(DocumentType type) {
+        return Optional.ofNullable(switch (type) {
+            case RESUME -> resumeDocument;
+            case SKILL_PROFILE -> skillProfileDocument;
+            case COVER_LETTER -> coverLetterDocument;
+        });
+    }
+
+    /**
+     * Hinterlegt ein Original-PDF und merkt sich dessen Dateinamen für Listen und Detailansicht.
+     */
+    public void setDocument(DocumentType type, ResumeDocument document) {
+        String fileName = document == null ? null : document.getFileName();
+        switch (type) {
+            case RESUME -> {
+                this.resumeDocument = document;
+                this.resumeFileName = fileName;
+            }
+            case SKILL_PROFILE -> {
+                this.skillProfileDocument = document;
+                this.skillProfileFileName = fileName;
+            }
+            case COVER_LETTER -> {
+                this.coverLetterDocument = document;
+                this.coverLetterFileName = fileName;
+            }
+        }
+    }
+
+    public Optional<String> getDocumentFileName(DocumentType type) {
+        return Optional.ofNullable(switch (type) {
+            case RESUME -> resumeFileName;
+            case SKILL_PROFILE -> skillProfileFileName;
+            case COVER_LETTER -> coverLetterFileName;
+        });
     }
 
     public Optional<UserAccount> getApplicantAccount() {

@@ -20,7 +20,8 @@ import de.talentmatch.common.exception.BusinessRuleException;
 import de.talentmatch.common.exception.ResourceNotFoundException;
 
 /**
- * Orchestriert die KI-Analyse einer Bewerbung: Resume Parsing → Skill-Matching → LLM-Bewertung.
+ * Orchestriert die KI-Analyse einer Bewerbung: Resume Parsing (+ Skills aus dem optionalen Skill-Profil)
+ * → Skill-Matching → LLM-Bewertung (+ optionales Anschreiben, nur qualitativ).
  * <p>
  * Die (langsamen) LLM-Aufrufe laufen bewusst außerhalb einer Datenbank-Transaktion; gespeichert wird danach
  * in einer kurzen Transaktion.
@@ -53,16 +54,26 @@ public class AnalysisService {
         Candidate candidate = snapshot.getCandidate();
         boolean needsParsing = candidate.getParsedProfile().isEmpty();
         CandidateProfile profile = candidate.getParsedProfile().orElseGet(() -> parse(candidate));
+        boolean needsSkillExtraction =
+                candidate.getSkillProfileText().isPresent() && candidate.getSkillProfileSkills().isEmpty();
+        List<String> skillProfileSkills = candidate.getSkillProfileText()
+                .filter(text -> needsSkillExtraction)
+                .map(aiService::extractSkills)
+                .orElseGet(candidate::getSkillProfileSkills);
 
         SkillMatch skillMatch = skillMatcher.match(snapshot.getJobPosition().getRequiredSkills(),
-                profile.technologies());
-        MatchAssessment assessment = aiService.assessMatch(profile, snapshot.getJobPosition(), skillMatch);
+                profile.technologies(), skillProfileSkills);
+        MatchAssessment assessment = aiService.assessMatch(profile, snapshot.getJobPosition(), skillMatch,
+                candidate.getCoverLetterText());
         AnalysisResult result = toResult(skillMatch, assessment);
 
         return transactionTemplate.execute(status -> {
             Application application = load(applicationId);
             if (needsParsing) {
                 application.getCandidate().applyProfile(profile);
+            }
+            if (needsSkillExtraction) {
+                application.getCandidate().setSkillProfileSkills(skillProfileSkills);
             }
             application.applyAnalysis(result);
             applicationRepository.flush();
@@ -103,7 +114,7 @@ public class AnalysisService {
         int languages = clamp(assessment.languagesScore());
         int overall = clamp((int) Math.round(skills * WEIGHT_SKILLS + experience * WEIGHT_EXPERIENCE
                 + education * WEIGHT_EDUCATION + languages * WEIGHT_LANGUAGES));
-        return new AnalysisResult(
+        AnalysisResult result = new AnalysisResult(
                 new AnalysisResult.Scores(overall, skills, experience, education, languages),
                 assessment.summary(),
                 skillMatch.matched(),
@@ -112,6 +123,8 @@ public class AnalysisService {
                 toQuestions(assessment.interviewQuestions()),
                 aiService.modelName(),
                 clock.instant());
+        result.markFromSkillProfile(skillMatch.fromSkillProfile());
+        return result;
     }
 
     private static List<InterviewQuestion> toQuestions(List<QuestionSuggestion> suggestions) {

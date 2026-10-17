@@ -18,6 +18,7 @@ import de.talentmatch.application.api.ApplicationSummaryDto;
 import de.talentmatch.application.api.CandidateSummaryDto;
 import de.talentmatch.candidate.Candidate;
 import de.talentmatch.job.JobPosition;
+import de.talentmatch.resume.DocumentType;
 
 /**
  * Wandelt Entities in API-DTOs um (Entities verlassen nie die Service-Schicht).
@@ -52,6 +53,8 @@ public final class ApplicationMapper {
                 application.getCreatedAt(),
                 application.getInterviewNotes(),
                 application.getResumeFileName().orElse(null),
+                application.getDocumentFileName(DocumentType.SKILL_PROFILE).orElse(null),
+                application.getDocumentFileName(DocumentType.COVER_LETTER).orElse(null),
                 new JobRefDto(job.getId(), job.getTitle(), job.getDepartment(), job.getExperienceLevel(),
                         job.getLocation(), job.getRequiredSkills()),
                 new CandidateDetailDto(candidate.getId(), candidate.getFirstName(), candidate.getLastName(),
@@ -69,7 +72,8 @@ public final class ApplicationMapper {
                 .toList();
         return new AnalysisDto(scores.overall(), scores.skills(), scores.experience(), scores.education(),
                 scores.languages(), result.getSummary(), result.getMatchingSkills(), result.getMissingSkills(),
-                result.getRiskFactors(), questionDtos, result.getModel(), result.getAnalyzedAt());
+                result.getSkillsFromSkillProfile(), result.getRiskFactors(), questionDtos, result.getModel(),
+                result.getAnalyzedAt());
     }
 
     /**

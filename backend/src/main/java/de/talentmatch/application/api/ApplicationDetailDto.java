@@ -9,7 +9,7 @@ import de.talentmatch.candidate.CandidateProfile;
 
 /**
  * Bewerber-Detail (AI Analytics View): Kandidat:in, extrahiertes Profil und KI-Analyse ({@code analysis} ist null,
- * solange die Bewerbung nicht analysiert wurde).
+ * solange die Bewerbung nicht analysiert wurde). Dateinamen optionaler Unterlagen sind null, wenn nicht eingereicht.
  */
 public record ApplicationDetailDto(
         Long id,
@@ -17,6 +17,8 @@ public record ApplicationDetailDto(
         LocalDateTime createdAt,
         String interviewNotes,
         String resumeFileName,
+        String skillProfileFileName,
+        String coverLetterFileName,
         JobRefDto job,
         CandidateDetailDto candidate,
         AnalysisDto analysis) {
@@ -51,6 +53,7 @@ public record ApplicationDetailDto(
             String summary,
             List<String> matchingSkills,
             List<String> missingSkills,
+            List<String> skillsFromSkillProfile,
             List<String> riskFactors,
             List<InterviewQuestionDto> questions,
             String model,

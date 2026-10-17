@@ -2,6 +2,7 @@ package de.talentmatch.applicant;
 
 import static de.talentmatch.support.WebMvcSecurityTestConfig.applicant;
 import static de.talentmatch.support.WebMvcSecurityTestConfig.hrManager;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -14,6 +15,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -23,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import de.talentmatch.applicant.api.MyApplicationDto;
 import de.talentmatch.common.exception.BusinessRuleException;
+import de.talentmatch.resume.ApplicantDocuments;
 import de.talentmatch.support.WebMvcSecurityTestConfig;
 
 @WebMvcTest(ApplicantController.class)
@@ -30,7 +33,7 @@ import de.talentmatch.support.WebMvcSecurityTestConfig;
 class ApplicantControllerTest {
 
     private static final MyApplicationDto APPLICATION = new MyApplicationDto(1L, 3L, "Data Engineer", "Data",
-            "Hamburg", ApplicantStatus.INTERVIEW, LocalDateTime.of(2026, 10, 8, 10, 15), "cv.pdf");
+            "Hamburg", ApplicantStatus.INTERVIEW, LocalDateTime.of(2026, 10, 8, 10, 15), "cv.pdf", null, null);
 
     @Autowired
     private MockMvc mockMvc;
@@ -67,6 +70,42 @@ class ApplicantControllerTest {
         mockMvc.perform(multipart("/api/applicant/jobs/3/applications").file(file).with(applicant()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.jobTitle").value("Data Engineer"));
+    }
+
+    @Test
+    void applyPassesOptionalSkillProfileAndCoverLetter() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "cv.pdf", "application/pdf", new byte[] {37});
+        MockMultipartFile skills = new MockMultipartFile("skillProfile", "skills.pdf", "application/pdf",
+                new byte[] {37});
+        MockMultipartFile letter = new MockMultipartFile("coverLetter", "brief.pdf", "application/pdf",
+                new byte[] {37});
+        ArgumentCaptor<ApplicantDocuments> documents = ArgumentCaptor.forClass(ApplicantDocuments.class);
+        when(applicantService.apply(eq("bewerber@talentmatch.de"), eq(3L), documents.capture()))
+                .thenReturn(APPLICATION);
+
+        mockMvc.perform(multipart("/api/applicant/jobs/3/applications").file(file).file(skills).file(letter)
+                        .with(applicant()))
+                .andExpect(status().isCreated());
+
+        assertThat(documents.getValue().resume().getOriginalFilename()).isEqualTo("cv.pdf");
+        assertThat(documents.getValue().skillProfile()).hasValueSatisfying(
+                f -> assertThat(f.getOriginalFilename()).isEqualTo("skills.pdf"));
+        assertThat(documents.getValue().coverLetter()).hasValueSatisfying(
+                f -> assertThat(f.getOriginalFilename()).isEqualTo("brief.pdf"));
+    }
+
+    @Test
+    void applyWithResumeOnlyLeavesOptionalDocumentsEmpty() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "cv.pdf", "application/pdf", new byte[] {37});
+        ArgumentCaptor<ApplicantDocuments> documents = ArgumentCaptor.forClass(ApplicantDocuments.class);
+        when(applicantService.apply(eq("bewerber@talentmatch.de"), eq(3L), documents.capture()))
+                .thenReturn(APPLICATION);
+
+        mockMvc.perform(multipart("/api/applicant/jobs/3/applications").file(file).with(applicant()))
+                .andExpect(status().isCreated());
+
+        assertThat(documents.getValue().skillProfile()).isEmpty();
+        assertThat(documents.getValue().coverLetter()).isEmpty();
     }
 
     @Test
