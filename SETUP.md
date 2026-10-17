@@ -19,6 +19,9 @@ Passwort ändern: Avatar oben rechts → „Passwort ändern“.
 
 **Stellen verwalten (HR):** In der Pipeline einer Stelle über „Bearbeiten“ bzw. „Löschen“. Das Löschen
 entfernt nach Bestätigung auch alle Bewerbungen der Stelle inklusive Unterlagen und KI-Analysen.
+Beschreibungen dürfen bis zu 20.000 Zeichen lang sein; `**Text**` wird im Bewerber-Portal fett dargestellt
+(im Formular per „F“-Button oder Strg+B, mit Vorschau). Bestehende Datenbanken erweitert die App beim Start
+automatisch (`SchemaUpgrade`).
 
 ## Bewerber-Portal
 
