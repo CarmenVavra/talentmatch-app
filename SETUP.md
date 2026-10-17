@@ -17,6 +17,9 @@ Wrapper (`backend/mvnw.cmd`) geladen, Frontend-Abhängigkeiten installiert `star
 `backend/src/main/resources/application.yml` unter `talentmatch.seed` (HR-Manager:in und Bewerber:in).
 Passwort ändern: Avatar oben rechts → „Passwort ändern“.
 
+**Stellen verwalten (HR):** In der Pipeline einer Stelle über „Bearbeiten“ bzw. „Löschen“. Das Löschen
+entfernt nach Bestätigung auch alle Bewerbungen der Stelle inklusive Unterlagen und KI-Analysen.
+
 ## Bewerber-Portal
 
 Bewerber:innen registrieren sich selbst („Als Bewerber:in registrieren“ auf der Login-Seite) und
