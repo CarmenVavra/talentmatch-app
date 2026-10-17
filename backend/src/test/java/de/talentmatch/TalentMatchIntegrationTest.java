@@ -3,6 +3,7 @@ package de.talentmatch;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -274,6 +275,65 @@ class TalentMatchIntegrationTest {
 
         mockMvc.perform(get("/api/applications/{id}/cover-letter", seededId)
                         .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void hrUpdatesAndDeletesJobIncludingItsApplications() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        String created = mockMvc.perform(post("/api/jobs").header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"QA Engineer","department":"Engineering","experienceLevel":"Mid",
+                                 "location":"Berlin","description":"Tests","requiredSkills":["Selenium"]}
+                                """))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Integer jobId = JsonPath.read(created, "$.id");
+        String createdDate = JsonPath.read(created, "$.createdDate");
+
+        mockMvc.perform(put("/api/jobs/{id}", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Senior QA Engineer","department":"Engineering","experienceLevel":"Senior",
+                                 "location":"Berlin · Remote","description":"Testautomatisierung",
+                                 "requiredSkills":[" Selenium ","Cypress","Cypress"]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Senior QA Engineer"))
+                .andExpect(jsonPath("$.requiredSkills.length()").value(2))
+                .andExpect(jsonPath("$.createdDate").value(createdDate));
+
+        // Bewerbung über das Portal (mit Zusatzunterlage), damit das Löschen auch Abhängigkeiten entfernt
+        String register = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Ida","lastName":"Loeschtest","email":"ida.loeschtest@example.org",
+                                 "password":"bewerbung-2026"}
+                                """))
+                .andReturn().getResponse().getContentAsString();
+        String token = JsonPath.read(register, "$.token");
+        mockMvc.perform(get("/api/applicant/jobs/{id}", jobId).header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(jsonPath("$.description").value("Testautomatisierung"));
+        String application = mockMvc.perform(multipart("/api/applicant/jobs/{id}/applications", jobId)
+                        .file(new MockMultipartFile("file", "cv.pdf", "application/pdf", pdf("Ida - Selenium")))
+                        .file(new MockMultipartFile("coverLetter", "brief.pdf", "application/pdf",
+                                pdf("Motivation")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Integer applicationId = JsonPath.read(application, "$.id");
+
+        mockMvc.perform(delete("/api/jobs/{id}", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/jobs/{id}", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/applications/{id}", applicationId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(delete("/api/jobs/{id}", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
                 .andExpect(status().isNotFound());
     }
 

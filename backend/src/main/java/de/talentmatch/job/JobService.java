@@ -11,10 +11,12 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import de.talentmatch.application.Application;
 import de.talentmatch.application.ApplicationRepository;
 import de.talentmatch.application.ApplicationRepository.JobAverageScore;
 import de.talentmatch.application.ApplicationRepository.JobStatusCount;
 import de.talentmatch.application.ApplicationStatus;
+import de.talentmatch.common.exception.ResourceNotFoundException;
 import de.talentmatch.job.api.CreateJobRequest;
 import de.talentmatch.job.api.JobDto;
 
@@ -51,15 +53,44 @@ public class JobService {
 
     @Transactional
     public JobDto createJob(CreateJobRequest request) {
-        List<String> skills = request.requiredSkills().stream()
+        JobPosition job = new JobPosition(request.title().trim(), request.department().trim(),
+                request.experienceLevel().trim(), request.location().trim(), request.description(),
+                normalizeSkills(request.requiredSkills()), LocalDate.now(clock));
+        return toDto(jobRepository.save(job), null, null);
+    }
+
+    /**
+     * Ändert eine Stelle. Bestehende KI-Analysen bleiben unverändert (sie lassen sich in der Detailansicht neu
+     * starten).
+     */
+    @Transactional
+    public JobDto updateJob(Long id, CreateJobRequest request) {
+        JobPosition job = jobRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Stelle", id));
+        job.update(request.title().trim(), request.department().trim(), request.experienceLevel().trim(),
+                request.location().trim(), request.description(), normalizeSkills(request.requiredSkills()));
+        return toDto(job, loadStatusCounts().get(id), loadAverageScores().get(id));
+    }
+
+    /**
+     * Löscht eine Stelle endgültig – inklusive aller Bewerbungen, Unterlagen und KI-Analysen.
+     *
+     * @return Anzahl der mitgelöschten Bewerbungen
+     */
+    @Transactional
+    public int deleteJob(Long id) {
+        JobPosition job = jobRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Stelle", id));
+        List<Application> applications = applicationRepository.findAllWithDependenciesByJobPositionId(id);
+        applicationRepository.deleteAll(applications);
+        jobRepository.delete(job);
+        return applications.size();
+    }
+
+    private static List<String> normalizeSkills(List<String> skills) {
+        return skills.stream()
                 .map(String::trim)
                 .filter(skill -> !skill.isEmpty())
                 .distinct()
                 .toList();
-        JobPosition job = new JobPosition(request.title().trim(), request.department().trim(),
-                request.experienceLevel().trim(), request.location().trim(), request.description(), skills,
-                LocalDate.now(clock));
-        return toDto(jobRepository.save(job), null, null);
     }
 
     private Map<Long, Map<ApplicationStatus, Long>> loadStatusCounts() {

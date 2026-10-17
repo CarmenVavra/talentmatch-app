@@ -3,11 +3,14 @@ package de.talentmatch.job;
 import static de.talentmatch.support.WebMvcSecurityTestConfig.applicant;
 import static de.talentmatch.support.WebMvcSecurityTestConfig.hrManager;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -25,6 +28,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import de.talentmatch.application.ApplicationStatus;
+import de.talentmatch.common.exception.ResourceNotFoundException;
 import de.talentmatch.job.api.JobDto;
 import de.talentmatch.support.WebMvcSecurityTestConfig;
 
@@ -92,6 +96,55 @@ class JobControllerTest {
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(3));
+    }
+
+    @Test
+    void updateJobReturnsUpdatedJob() throws Exception {
+        when(jobService.updateJob(eq(3L), any())).thenReturn(job());
+
+        mockMvc.perform(put("/api/jobs/3").with(hrManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"Data Engineer","department":"Data","experienceLevel":"Mid",
+                                 "location":"Hamburg","description":"Neu","requiredSkills":["Python"]}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Data Engineer"));
+    }
+
+    @Test
+    void updateJobValidatesInput() throws Exception {
+        mockMvc.perform(put("/api/jobs/3").with(hrManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"\",\"requiredSkills\":[]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.title").exists());
+        verify(jobService, never()).updateJob(any(), any());
+    }
+
+    @Test
+    void updateUnknownJobReturns404() throws Exception {
+        when(jobService.updateJob(eq(99L), any())).thenThrow(new ResourceNotFoundException("Stelle", 99L));
+
+        mockMvc.perform(put("/api/jobs/99").with(hrManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"title":"X","department":"Data","experienceLevel":"Mid",
+                                 "location":"Hamburg","description":"","requiredSkills":["SQL"]}
+                                """))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteJobReturns204() throws Exception {
+        mockMvc.perform(delete("/api/jobs/3").with(hrManager())).andExpect(status().isNoContent());
+        verify(jobService).deleteJob(3L);
+    }
+
+    @Test
+    void applicantMayNotDeleteJobs() throws Exception {
+        mockMvc.perform(delete("/api/jobs/3").with(applicant())).andExpect(status().isForbidden());
+        verify(jobService, never()).deleteJob(any());
     }
 
     private static JobDto job() {

@@ -23,6 +23,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     @EntityGraph(attributePaths = {"candidate", "analysis", "jobPosition"})
     Optional<Application> findWithDetailsById(Long id);
 
+    /**
+     * Bewerbungen einer Stelle samt allen abhängigen Daten – zum Löschen in einem Rutsch (keine Nachlade-Abfragen).
+     */
+    @EntityGraph(attributePaths = {"candidate", "analysis", "resumeDocument", "skillProfileDocument",
+        "coverLetterDocument"})
+    List<Application> findAllWithDependenciesByJobPositionId(Long jobPositionId);
+
     @EntityGraph(attributePaths = {"resumeDocument"})
     Optional<Application> findWithResumeById(Long id);
 

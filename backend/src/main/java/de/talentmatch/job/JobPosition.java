@@ -61,6 +61,19 @@ public class JobPosition {
         this.createdDate = createdDate;
     }
 
+    /**
+     * Ändert die Stellenbeschreibung; das Ausschreibungsdatum bleibt erhalten.
+     */
+    public void update(String title, String department, String experienceLevel, String location,
+                       String description, List<String> requiredSkills) {
+        this.title = title;
+        this.department = department;
+        this.experienceLevel = experienceLevel;
+        this.location = location;
+        this.description = description;
+        this.requiredSkills = new ArrayList<>(requiredSkills);
+    }
+
     public Long getId() {
         return id;
     }

@@ -6,6 +6,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Daten einer Stelle – zum Anlegen ({@code POST}) und Ändern ({@code PUT}).
+ */
 public record CreateJobRequest(
         @NotBlank(message = "Titel ist erforderlich.")
         @Size(max = 200, message = "Der Titel darf höchstens 200 Zeichen lang sein.")
