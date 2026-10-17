@@ -12,6 +12,7 @@ import de.talentmatch.analysis.AnalysisResult;
 import de.talentmatch.analysis.InterviewQuestion;
 import de.talentmatch.application.Application;
 import de.talentmatch.application.ApplicationStatus;
+import de.talentmatch.auth.UserAccount;
 import de.talentmatch.candidate.Candidate;
 import de.talentmatch.candidate.CandidateProfile;
 import de.talentmatch.candidate.CandidateProfile.WorkExperience;
@@ -280,6 +281,48 @@ final class DemoData {
             default -> 0;
         };
         return Math.max(18, Math.min(96, average + offset + JITTER[k % JITTER.length]));
+    }
+
+    // ---------------------------------------------------------------- Bewerber-Portal (Demo-Konto)
+
+    /**
+     * Zwei Portal-Bewerbungen des Demo-Bewerberkontos: Data Engineer (Interview) und DevOps Engineer (eingegangen).
+     */
+    static List<Application> applicantPortal(UserAccount account, JobPosition dataJob, JobPosition devopsJob,
+                                             LocalDate today) {
+        CandidateProfile profile = new CandidateProfile(account.getFirstName(), account.getLastName(),
+                account.getEmail(), "+49 151 2384 7700", "Leipzig", "Data Analyst", "Hermes",
+                List.of(new WorkExperience("05/2022 – heute", "Data Analyst", "Hermes", "Leipzig",
+                                List.of("Reporting-Pipelines mit Python und SQL", "Airflow-DAGs für tägliche Loads")),
+                        new WorkExperience("09/2019 – 04/2022", "Werkstudent BI", "Otto", "Hamburg",
+                                List.of("Dashboards in Tableau"))),
+                List.of("Python", "SQL", "Airflow", "Tableau", "Docker"), "M.Sc. Data Science · Universität Leipzig "
+                        + "· 2022", List.of("Deutsch (Muttersprache)", "Englisch (C1)"), 4);
+
+        Application interview = portalApplication(account, dataJob, profile, today.minusDays(9));
+        interview.applyAnalysis(new AnalysisResult(new AnalysisResult.Scores(73, 75, 70, 80, 72),
+                account.getFirstName() + " bringt solide Erfahrung mit Python, SQL und Airflow mit. Spark fehlt "
+                        + "bisher im Lebenslauf. Teilweise Passung – ein Interview ist sinnvoll, um die "
+                        + "Lernkurve für verteilte Verarbeitung einzuschätzen.",
+                List.of("Python", "SQL", "Airflow"), List.of("Spark"), List.of("Kein Nachweis von Spark-Erfahrung"),
+                List.of(new InterviewQuestion("Fehlender Skill",
+                                "Haben Sie bereits mit Spark oder anderen verteilten Frameworks gearbeitet?", false),
+                        new InterviewQuestion("Technik", "Wie strukturieren Sie Airflow-DAGs für Backfills?", false)),
+                MODEL, today.minusDays(8).atTime(9, 0).atZone(ZoneId.systemDefault()).toInstant()));
+        interview.setStatus(ApplicationStatus.INTERVIEW);
+
+        Application received = portalApplication(account, devopsJob, profile, today.minusDays(2));
+        return List.of(interview, received);
+    }
+
+    private static Application portalApplication(UserAccount account, JobPosition job, CandidateProfile profile,
+                                                  LocalDate submitted) {
+        Candidate candidate = new Candidate(account.getFirstName(), account.getLastName());
+        candidate.applyProfile(profile);
+        candidate.setRawResumeText(resumeText(profile));
+        Application application = new Application(job, candidate, submitted.atTime(10, 15));
+        application.setApplicantAccount(account);
+        return application;
     }
 
     // ---------------------------------------------------------------- Hilfsfunktionen

@@ -15,6 +15,7 @@ import de.talentmatch.application.Application;
 import de.talentmatch.application.ApplicationMapper;
 import de.talentmatch.application.ApplicationRepository;
 import de.talentmatch.application.api.ApplicationSummaryDto;
+import de.talentmatch.auth.UserAccount;
 import de.talentmatch.candidate.Candidate;
 import de.talentmatch.common.exception.InvalidFileException;
 import de.talentmatch.common.exception.ResourceNotFoundException;
@@ -24,7 +25,7 @@ import de.talentmatch.job.JobPositionRepository;
 
 /**
  * Nimmt PDF-Lebensläufe entgegen: Validierung → Text-Extraktion (Tika) → neue Bewerbung mit Status NEW.
- * Die KI-Analyse wird anschließend separat über {@code POST /api/applications/{id}/analyze} angestoßen.
+ * Die KI-Analyse folgt separat (HR: {@code POST /api/applications/{id}/analyze}, Portal: automatisch).
  */
 @Service
 public class ResumeUploadService {
@@ -47,26 +48,52 @@ public class ResumeUploadService {
         this.clock = clock;
     }
 
+    /**
+     * Upload durch HR: Name wird aus dem Dateinamen, Kontaktdaten aus dem PDF-Text vorbelegt.
+     */
     @Transactional
     public ApplicationSummaryDto upload(Long jobId, MultipartFile file) {
         JobPosition job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Stelle", jobId));
+        ResumeHeuristics.Name name = ResumeHeuristics.guessName(fileName(file));
+        Application application = createApplication(job, file, new Candidate(name.firstName(), name.lastName()));
+        return ApplicationMapper.toSummary(application);
+    }
+
+    /**
+     * Bewerbung über das Bewerber-Portal: Stammdaten stammen aus dem Benutzerkonto.
+     */
+    @Transactional
+    public Application submitForApplicant(JobPosition job, UserAccount applicant, MultipartFile file) {
+        Candidate candidate = new Candidate(applicant.getFirstName(), applicant.getLastName());
+        candidate.setEmail(applicant.getEmail());
+        Application application = new Application(job, candidate, LocalDateTime.now(clock));
+        application.setApplicantAccount(applicant);
+        return attachResume(application, file);
+    }
+
+    private Application createApplication(JobPosition job, MultipartFile file, Candidate candidate) {
+        return attachResume(new Application(job, candidate, LocalDateTime.now(clock)), file);
+    }
+
+    private Application attachResume(Application application, MultipartFile file) {
         byte[] data = validate(file);
         String text = textExtractor.extractText(data);
         if (text.isBlank()) {
             throw new InvalidFileException("Im PDF wurde kein Text gefunden (gescanntes Dokument?).");
         }
-
-        String fileName = file.getOriginalFilename() == null ? "Lebenslauf.pdf" : file.getOriginalFilename();
-        ResumeHeuristics.Name name = ResumeHeuristics.guessName(fileName);
-        Candidate candidate = new Candidate(name.firstName(), name.lastName());
+        Candidate candidate = application.getCandidate();
         candidate.setRawResumeText(text);
-        ResumeHeuristics.findEmail(text).ifPresent(candidate::setEmail);
+        if (candidate.getEmail() == null) {
+            ResumeHeuristics.findEmail(text).ifPresent(candidate::setEmail);
+        }
         ResumeHeuristics.findPhone(text).ifPresent(candidate::setPhone);
+        application.setResumeDocument(new ResumeDocument(fileName(file), PDF_CONTENT_TYPE, data));
+        return applicationRepository.save(application);
+    }
 
-        Application application = new Application(job, candidate, LocalDateTime.now(clock));
-        application.setResumeDocument(new ResumeDocument(fileName, PDF_CONTENT_TYPE, data));
-        return ApplicationMapper.toSummary(applicationRepository.save(application));
+    private static String fileName(MultipartFile file) {
+        return file == null || file.getOriginalFilename() == null ? "Lebenslauf.pdf" : file.getOriginalFilename();
     }
 
     private byte[] validate(MultipartFile file) {

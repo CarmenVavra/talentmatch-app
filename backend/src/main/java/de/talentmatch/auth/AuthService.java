@@ -1,5 +1,6 @@
 package de.talentmatch.auth;
 
+import java.util.Locale;
 import java.util.Optional;
 
 import org.springframework.security.authentication.BadCredentialsException;
@@ -8,7 +9,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import de.talentmatch.auth.api.LoginResponse;
+import de.talentmatch.auth.api.RegisterRequest;
 import de.talentmatch.auth.api.UserDto;
+import de.talentmatch.common.exception.BusinessRuleException;
 import de.talentmatch.common.exception.InvalidPasswordException;
 import de.talentmatch.common.exception.ResourceNotFoundException;
 
@@ -31,6 +34,21 @@ public class AuthService {
         UserAccount user = userRepository.findByEmailIgnoreCase(email.trim())
                 .filter(candidate -> passwordEncoder.matches(password, candidate.getPasswordHash()))
                 .orElseThrow(() -> new BadCredentialsException("Ungültige Zugangsdaten"));
+        TokenService.IssuedToken token = tokenService.issue(user);
+        return new LoginResponse(token.value(), token.expiresAt(), UserDto.from(user));
+    }
+
+    /**
+     * Legt ein Bewerber-Konto an (immer Rolle APPLICANT) und meldet es direkt an.
+     */
+    @Transactional
+    public LoginResponse register(RegisterRequest request) {
+        String email = request.email().trim().toLowerCase(Locale.ROOT);
+        if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
+            throw new BusinessRuleException("Für diese E-Mail-Adresse existiert bereits ein Konto.");
+        }
+        UserAccount user = userRepository.save(new UserAccount(email, passwordEncoder.encode(request.password()),
+                request.firstName().trim(), request.lastName().trim(), null, Role.APPLICANT));
         TokenService.IssuedToken token = tokenService.issue(user);
         return new LoginResponse(token.value(), token.expiresAt(), UserDto.from(user));
     }

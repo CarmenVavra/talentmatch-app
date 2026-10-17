@@ -2,6 +2,8 @@ package de.talentmatch.seed;
 
 import java.time.Clock;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,11 +14,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import de.talentmatch.application.Application;
 import de.talentmatch.application.ApplicationRepository;
 import de.talentmatch.auth.Role;
 import de.talentmatch.auth.UserAccount;
 import de.talentmatch.auth.UserAccountRepository;
 import de.talentmatch.config.TalentMatchProperties;
+import de.talentmatch.job.JobPosition;
 import de.talentmatch.job.JobPositionRepository;
 
 /**
@@ -57,6 +61,29 @@ public class DemoDataSeeder implements ApplicationRunner {
             applicationRepository.saveAll(data.applications());
             LOG.info("Demo-Daten angelegt: {} Stellen, {} Bewerbungen", data.jobs().size(), data.applications().size());
         }
+        seedApplicantPortal();
+    }
+
+    /**
+     * Gibt dem Demo-Bewerberkonto zwei Bewerbungen, damit das Portal Inhalt zeigt (idempotent).
+     */
+    private void seedApplicantPortal() {
+        UserAccount applicant = userRepository.findByEmailIgnoreCase(properties.seed().applicantEmail())
+                .orElse(null);
+        if (applicant == null
+                || !applicationRepository.findByApplicantAccountIdOrderByCreatedAtDesc(applicant.getId()).isEmpty()) {
+            return;
+        }
+        List<JobPosition> jobs = jobRepository.findAllByOrderByCreatedDateDescIdAsc();
+        Optional<JobPosition> dataJob = jobs.stream().filter(j -> "Data Engineer".equals(j.getTitle())).findFirst();
+        Optional<JobPosition> devopsJob = jobs.stream().filter(j -> "DevOps Engineer".equals(j.getTitle())).findFirst();
+        if (dataJob.isEmpty() || devopsJob.isEmpty()) {
+            return;
+        }
+        List<Application> applications = DemoData.applicantPortal(applicant, dataJob.get(), devopsJob.get(),
+                LocalDate.now(clock));
+        applicationRepository.saveAll(applications);
+        LOG.info("Demo-Bewerbungen für {} angelegt: {}", applicant.getEmail(), applications.size());
     }
 
     private void seedUsers() {

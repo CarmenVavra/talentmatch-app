@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /**
  * Bewerbungen. Listenabfragen laden Kandidat:in und Analyse per {@link EntityGraph} mit (kein N+1).
@@ -38,6 +39,15 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             group by a.jobPosition.id
             """)
     List<JobAverageScore> averageScoreByJob();
+
+    /** Eigene Bewerbungen einer Bewerber:in (Portal), neueste zuerst. */
+    @EntityGraph(attributePaths = {"jobPosition"})
+    List<Application> findByApplicantAccountIdOrderByCreatedAtDesc(Long accountId);
+
+    boolean existsByJobPositionIdAndApplicantAccountId(Long jobPositionId, Long accountId);
+
+    @Query("select a.jobPosition.id from Application a where a.applicantAccount.id = :accountId")
+    List<Long> findJobIdsByApplicantAccountId(@Param("accountId") Long accountId);
 
     long countByStatus(ApplicationStatus status);
 

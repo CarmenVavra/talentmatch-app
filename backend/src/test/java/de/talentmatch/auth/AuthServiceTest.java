@@ -16,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.Pbkdf2PasswordEncoder;
 
 import de.talentmatch.auth.api.LoginResponse;
+import de.talentmatch.auth.api.RegisterRequest;
+import de.talentmatch.common.exception.BusinessRuleException;
 import de.talentmatch.common.exception.InvalidPasswordException;
 
 class AuthServiceTest {
@@ -51,6 +53,25 @@ class AuthServiceTest {
         assertThatThrownBy(() -> service.login(EMAIL, "falsch")).isInstanceOf(BadCredentialsException.class);
         assertThatThrownBy(() -> service.login("x@example.org", "alt-passwort"))
                 .isInstanceOf(BadCredentialsException.class);
+    }
+
+    @Test
+    void registerCreatesApplicantAccountAndLogsIn() {
+        when(repository.save(any(UserAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        LoginResponse response = service.register(
+                new RegisterRequest(" Max ", "Mustermann", " Max@Example.org ", "geheim-123"));
+
+        assertThat(response.token()).isEqualTo("jwt");
+        assertThat(response.user().role()).isEqualTo(Role.APPLICANT);
+        assertThat(response.user().email()).isEqualTo("max@example.org");
+        assertThat(response.user().firstName()).isEqualTo("Max");
+    }
+
+    @Test
+    void registerRejectsExistingEmail() {
+        assertThatThrownBy(() -> service.register(new RegisterRequest("K", "V", EMAIL, "geheim-123")))
+                .isInstanceOf(BusinessRuleException.class);
     }
 
     @Test

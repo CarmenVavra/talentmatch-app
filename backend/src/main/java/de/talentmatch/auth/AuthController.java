@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import de.talentmatch.auth.api.ChangePasswordRequest;
 import de.talentmatch.auth.api.LoginRequest;
 import de.talentmatch.auth.api.LoginResponse;
+import de.talentmatch.auth.api.RegisterRequest;
 import de.talentmatch.auth.api.UserDto;
 import de.talentmatch.common.exception.ResourceNotFoundException;
 
@@ -31,6 +32,12 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request.email(), request.password());
+    }
+
+    @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
+    public LoginResponse register(@Valid @RequestBody RegisterRequest request) {
+        return authService.register(request);
     }
 
     @GetMapping("/me")

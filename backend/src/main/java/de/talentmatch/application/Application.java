@@ -16,8 +16,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import de.talentmatch.analysis.AnalysisResult;
+import de.talentmatch.auth.UserAccount;
 import de.talentmatch.candidate.Candidate;
 import de.talentmatch.job.JobPosition;
 import de.talentmatch.resume.ResumeDocument;
@@ -26,7 +28,8 @@ import de.talentmatch.resume.ResumeDocument;
  * Bewerbung einer Kandidat:in auf eine Stelle – Karte im Kanban-Board.
  */
 @Entity
-@Table(name = "application")
+@Table(name = "application", uniqueConstraints = @UniqueConstraint(
+        name = "uk_application_job_applicant", columnNames = {"job_position_id", "applicant_account_id"}))
 public class Application {
 
     @Id
@@ -61,6 +64,11 @@ public class Application {
 
     @Column(length = 10_000)
     private String interviewNotes;
+
+    /** Konto der Bewerber:in, falls die Bewerbung über das Portal eingereicht wurde (sonst HR-Upload). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "applicant_account_id")
+    private UserAccount applicantAccount;
 
     protected Application() {
     }
@@ -120,6 +128,14 @@ public class Application {
 
     public Optional<String> getResumeFileName() {
         return Optional.ofNullable(resumeFileName);
+    }
+
+    public Optional<UserAccount> getApplicantAccount() {
+        return Optional.ofNullable(applicantAccount);
+    }
+
+    public void setApplicantAccount(UserAccount applicantAccount) {
+        this.applicantAccount = applicantAccount;
     }
 
     public String getInterviewNotes() {

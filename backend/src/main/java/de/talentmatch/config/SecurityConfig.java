@@ -35,7 +35,8 @@ import de.talentmatch.auth.TokenService;
 
 /**
  * Zustandslose JWT-Authentifizierung (Spring Security Resource Server, HS256).
- * Alle fachlichen Endpunkte sind der Rolle HR_MANAGER vorbehalten.
+ * Das Bewerber-Portal ({@code /api/applicant}) ist der Rolle APPLICANT vorbehalten, alle übrigen
+ * fachlichen Endpunkte der Rolle HR_MANAGER.
  */
 @Configuration
 @EnableWebSecurity
@@ -50,8 +51,9 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/**").authenticated()
+                        .requestMatchers("/api/applicant/**").hasRole(Role.APPLICANT.name())
                         .requestMatchers("/api/**").hasRole(Role.HR_MANAGER.name())
                         .requestMatchers("/h2-console/**", "/error").permitAll()
                         .anyRequest().denyAll())

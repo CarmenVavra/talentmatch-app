@@ -1,6 +1,7 @@
 package de.talentmatch.auth;
 
 import static de.talentmatch.support.WebMvcSecurityTestConfig.hrManager;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -60,6 +61,32 @@ class AuthControllerTest {
                         .content("{\"email\":\"katrin.vogel@talentmatch.de\",\"password\":\"falsch\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.detail").value("E-Mail oder Passwort ist falsch."));
+    }
+
+    @Test
+    void registerIsPublicAndReturns201() throws Exception {
+        UserDto applicantUser = new UserDto(2L, "max@example.org", "Max", "Mustermann", null, Role.APPLICANT);
+        when(authService.register(any())).thenReturn(new LoginResponse("token", Instant.EPOCH, applicantUser));
+
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Max","lastName":"Mustermann","email":"max@example.org",
+                                 "password":"geheim-123"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.user.role").value("APPLICANT"));
+    }
+
+    @Test
+    void registerValidatesInput() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"firstName\":\"\",\"lastName\":\"M\",\"email\":\"x\",\"password\":\"kurz\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.firstName").exists())
+                .andExpect(jsonPath("$.errors.email").exists())
+                .andExpect(jsonPath("$.errors.password").exists());
     }
 
     @Test

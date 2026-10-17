@@ -146,6 +146,70 @@ class TalentMatchIntegrationTest {
     }
 
     @Test
+    void applicantRegistersAppliesAndSeesOnlyTheStatus() throws Exception {
+        String register = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Lea","lastName":"Neu","email":"lea.neu@example.org",
+                                 "password":"bewerbung-2026"}
+                                """))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.user.role").value("APPLICANT"))
+                .andReturn().getResponse().getContentAsString();
+        String token = JsonPath.read(register, "$.token");
+
+        String jobs = mockMvc.perform(get("/api/applicant/jobs").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(6))
+                .andExpect(jsonPath("$[0].averageScore").doesNotExist())
+                .andExpect(jsonPath("$[0].applied").value(false))
+                .andReturn().getResponse().getContentAsString();
+        Integer jobId = JsonPath.read(jobs, "$[1].id");
+
+        MockMultipartFile pdf = new MockMultipartFile("file", "cv.pdf", "application/pdf",
+                pdf("Lea Neu - Angular, TypeScript, RxJS"));
+        mockMvc.perform(multipart("/api/applicant/jobs/{id}/applications", jobId).file(pdf)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("RECEIVED"));
+        mockMvc.perform(multipart("/api/applicant/jobs/{id}/applications", jobId).file(pdf)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].status").value("RECEIVED"))
+                .andExpect(jsonPath("$[0].overallScore").doesNotExist());
+
+        // HR sieht die Portal-Bewerbung mit den Stammdaten aus dem Konto
+        String hrToken = login(hrEmail, hrPassword);
+        mockMvc.perform(get("/api/jobs/{id}/applications", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.candidate.lastName == 'Neu')].candidate.firstName").value("Lea"));
+        mockMvc.perform(get("/api/applicant/jobs").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void seededApplicantHasDemoApplications() throws Exception {
+        String token = login(applicantEmail, applicantPassword);
+        mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].jobTitle").value("DevOps Engineer"))
+                .andExpect(jsonPath("$[0].status").value("RECEIVED"))
+                .andExpect(jsonPath("$[1].status").value("INTERVIEW"));
+    }
+
+    @Test
+    void registrationRejectsExistingEmail() throws Exception {
+        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"firstName\":\"K\",\"lastName\":\"V\",\"email\":\"" + hrEmail
+                                + "\",\"password\":\"irgendwas-123\"}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
     void userCanChangePassword() throws Exception {
         String token = login(applicantEmail, applicantPassword);
         String newPassword = "ganz-neues-passwort";
