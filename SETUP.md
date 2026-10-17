@@ -22,7 +22,8 @@ Passwort ändern: Avatar oben rechts → „Passwort ändern“.
 Bewerber:innen registrieren sich selbst („Als Bewerber:in registrieren“ auf der Login-Seite) und
 erhalten immer die Rolle Bewerber:in. Im Portal können sie:
 
-- **Offene Stellen** ansehen und sich mit einem PDF-Lebenslauf bewerben (eine Bewerbung pro Stelle) –
+- **Offene Stellen** ansehen (mit eigener Detailseite pro Stelle: vollständige Beschreibung und gesuchte
+  Kenntnisse) und sich mit einem PDF-Lebenslauf bewerben (eine Bewerbung pro Stelle) –
   optional zusätzlich mit **Skill-Profil** und **Anschreiben** (ebenfalls PDF, je max. 10 MB),
 - unter **Meine Bewerbungen** den Status verfolgen: Eingegangen → Einladung zum Interview → Zusage/Absage.
 
