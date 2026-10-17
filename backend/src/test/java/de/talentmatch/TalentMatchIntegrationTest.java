@@ -31,9 +31,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+
+import de.talentmatch.common.persistence.SchemaUpgrade;
+import de.talentmatch.job.JobPosition;
 
 /**
  * End-to-End über die REST-API mit echter Security, echter (In-Memory-)Datenbank und Demo-Daten.
@@ -45,6 +49,12 @@ class TalentMatchIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private SchemaUpgrade schemaUpgrade;
 
     @Value("${talentmatch.seed.hr-email}")
     private String hrEmail;
@@ -338,6 +348,40 @@ class TalentMatchIntegrationTest {
     }
 
     @Test
+    void acceptsLongJobDescriptionsUpToTheLimit() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        String created = mockMvc.perform(post("/api/jobs").header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jobJson("**Ihre Aufgaben**\\n" + "x".repeat(15_000))))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        Integer jobId = JsonPath.read(created, "$.id");
+        String description = JsonPath.read(created, "$.description");
+        assertThat(description).hasSize(15_000 + "**Ihre Aufgaben**\n".length());
+
+        mockMvc.perform(put("/api/jobs/{id}", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jobJson("x".repeat(20_001))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.description").value(containsString("20.000")));
+
+        mockMvc.perform(delete("/api/jobs/{id}", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void schemaUpgradeWidensAnOldDescriptionColumn() {
+        jdbcTemplate.execute("alter table job_position alter column description set data type varchar(4000)");
+
+        schemaUpgrade.run(null);
+        schemaUpgrade.run(null);
+
+        Integer length = jdbcTemplate.queryForObject("select character_maximum_length from information_schema.columns"
+                + " where lower(table_name) = 'job_position' and lower(column_name) = 'description'", Integer.class);
+        assertThat(length).isEqualTo(JobPosition.MAX_DESCRIPTION_LENGTH);
+    }
+
+    @Test
     void seededApplicantHasDemoApplications() throws Exception {
         String token = login(applicantEmail, applicantPassword);
         mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(token)))
@@ -392,6 +436,13 @@ class TalentMatchIntegrationTest {
 
     private static String json(String current, String next) {
         return "{\"currentPassword\":\"" + current + "\",\"newPassword\":\"" + next + "\"}";
+    }
+
+    private static String jobJson(String description) {
+        return """
+                {"title":"Lange Ausschreibung","department":"Engineering","experienceLevel":"Mid",
+                 "location":"Berlin","description":"%s","requiredSkills":["Java"]}
+                """.formatted(description);
     }
 
     private static String bearer(String token) {

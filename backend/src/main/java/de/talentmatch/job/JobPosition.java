@@ -21,6 +21,9 @@ import de.talentmatch.common.persistence.StringListConverter;
 @Table(name = "job_position")
 public class JobPosition {
 
+    /** Höchstlänge der Stellenbeschreibung (Zeichen) – auch für lange Ausschreibungen ausreichend. */
+    public static final int MAX_DESCRIPTION_LENGTH = 20_000;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -37,7 +40,7 @@ public class JobPosition {
     @Column(nullable = false)
     private String location;
 
-    @Column(length = 4000)
+    @Column(length = MAX_DESCRIPTION_LENGTH)
     private String description;
 
     @Convert(converter = StringListConverter.class)
