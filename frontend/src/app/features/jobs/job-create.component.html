@@ -1,10 +1,38 @@
 <div class="page">
   <div class="head">
     <nav class="breadcrumb" aria-label="Brotkrümel">
-      <a routerLink="/jobs">Stellen</a><span>/</span><span>Neue Stelle</span>
+      <a routerLink="/jobs">Stellen</a><span>/</span>
+      @if (editing()) {
+        @if (job(); as j) {
+          <a [routerLink]="['/jobs', j.id, 'pipeline']">{{ j.title }}</a
+          ><span>/</span>
+        }
+        <span>Bearbeiten</span>
+      } @else {
+        <span>Neue Stelle</span>
+      }
     </nav>
-    <h1 class="page-title">Neue Stelle anlegen</h1>
+    <h1 class="page-title">{{ editing() ? 'Stelle bearbeiten' : 'Neue Stelle anlegen' }}</h1>
   </div>
+
+  @if (loadError(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+    </div>
+  }
+
+  @if (job(); as j) {
+    @if (j.totalApplications > 0) {
+      <p class="edit-hint">
+        <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+        <span>
+          Auf diese Stelle gibt es {{ j.totalApplications }} Bewerbungen. Bestehende KI-Analysen
+          bleiben unverändert – geänderte Skills wirken sich auf neu gestartete Analysen aus.
+        </span>
+      </p>
+    }
+  }
 
   @if (error(); as message) {
     <div class="alert" role="alert">
@@ -34,7 +62,7 @@
       <span class="field-label" id="dept-label">Abteilung</span>
       <app-segmented-control
         ariaLabel="Abteilung"
-        [options]="departmentOptions"
+        [options]="departmentOptions()"
         [(value)]="department"
       />
     </div>
@@ -112,12 +140,20 @@
       <button
         type="submit"
         class="btn btn-primary btn-lg btn-wide submit"
-        [disabled]="submitting()"
+        [disabled]="submitting() || (editing() && !job())"
       >
-        {{ submitting() ? 'Wird angelegt …' : 'Stelle anlegen' }}
+        @if (editing()) {
+          {{ submitting() ? 'Wird gespeichert …' : 'Änderungen speichern' }}
+        } @else {
+          {{ submitting() ? 'Wird angelegt …' : 'Stelle anlegen' }}
+        }
         <lucide-icon [img]="icons.check" [size]="16" aria-hidden="true" />
       </button>
-      <a class="btn btn-secondary btn-lg" routerLink="/jobs">Abbrechen</a>
+      <a
+        class="btn btn-secondary btn-lg cancel"
+        [routerLink]="editing() ? ['/jobs', jobId(), 'pipeline'] : ['/jobs']"
+        >Abbrechen</a
+      >
     </div>
   </form>
 </div>

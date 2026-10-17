@@ -74,6 +74,34 @@ export class JobStore {
     );
   }
 
+  /** Lädt eine einzelne Stelle (z. B. für das Bearbeiten-Formular). */
+  fetch(id: number): Observable<Job> {
+    return this.api.get(id);
+  }
+
+  update(id: number, request: CreateJobRequest): Observable<Job> {
+    return this.api
+      .update(id, request)
+      .pipe(tap((job) => this.jobs.update((list) => list.map((j) => (j.id === id ? job : j)))));
+  }
+
+  /** Löscht eine Stelle; die Kennzahlen werden beim nächsten Öffnen des Dashboards neu geladen. */
+  delete(id: number): Observable<void> {
+    return this.api.delete(id).pipe(
+      tap(() => {
+        this.jobs.update((list) => list.filter((j) => j.id !== id));
+        if (this.selectedJobId() === id) {
+          this.selectedJobId.set(null);
+          try {
+            localStorage.removeItem(PIPELINE_JOB_KEY);
+          } catch {
+            // nichts zu tun
+          }
+        }
+      }),
+    );
+  }
+
   select(jobId: number): void {
     this.selectedJobId.set(jobId);
     try {

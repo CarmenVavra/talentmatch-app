@@ -90,6 +90,46 @@ describe('PipelineBoardComponent', () => {
     expect(root.querySelectorAll('.empty').length).toBe(3);
   });
 
+  it('links to the edit page of the job', async () => {
+    const fixture = await render();
+    expect(fixture.nativeElement.querySelector('.edit-job')?.getAttribute('href')).toBe(
+      '/jobs/1/edit',
+    );
+  });
+
+  it('deletes the job after confirmation and returns to the dashboard', async () => {
+    const fixture = await render();
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    const root = fixture.nativeElement as HTMLElement;
+
+    (root.querySelector('.delete-job') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    const dialog = root.querySelector('app-confirm-dialog') as HTMLElement;
+    expect(dialog.textContent).toContain('„Senior Java Developer“');
+    expect(dialog.querySelector('.delete-warning')?.textContent).toContain('2 Bewerbungen');
+
+    (dialog.querySelector('.confirm') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    expect((dialog.querySelector('.confirm') as HTMLButtonElement).textContent).toContain(
+      'Wird gelöscht',
+    );
+    const req = http.expectOne('/api/jobs/1');
+    expect(req.request.method).toBe('DELETE');
+    req.flush(null);
+    expect(navigate).toHaveBeenCalledWith(['/jobs']);
+  });
+
+  it('keeps the job when deletion is cancelled', async () => {
+    const fixture = await render();
+    const root = fixture.nativeElement as HTMLElement;
+    (root.querySelector('.delete-job') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    (root.querySelector('app-confirm-dialog .cancel') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    expect(root.querySelector('app-confirm-dialog')).toBeNull();
+    http.expectNone('/api/jobs/1');
+  });
+
   it('opens the detail page on card click', async () => {
     const fixture = await render();
     const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);

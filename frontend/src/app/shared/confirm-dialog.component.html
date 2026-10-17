@@ -1,0 +1,42 @@
+<div
+  class="dialog-backdrop"
+  tabindex="-1"
+  (click)="onBackdropClick($event)"
+  (keydown.escape)="cancel()"
+>
+  <div
+    #dialog
+    class="dialog"
+    [class.danger]="danger()"
+    role="alertdialog"
+    aria-modal="true"
+    aria-labelledby="confirm-title"
+    aria-describedby="confirm-body"
+    tabindex="-1"
+  >
+    <div class="dialog-head">
+      @if (danger()) {
+        <lucide-icon class="head-icon" [img]="icons.alert" [size]="20" aria-hidden="true" />
+      }
+      <h3 id="confirm-title" class="dialog-title">{{ title() }}</h3>
+    </div>
+    <div id="confirm-body" class="dialog-body">
+      <ng-content />
+    </div>
+    <div class="dialog-foot">
+      <button type="button" class="btn btn-secondary cancel" [disabled]="busy()" (click)="cancel()">
+        Abbrechen
+      </button>
+      <button
+        type="button"
+        class="btn confirm"
+        [class.btn-primary]="!danger()"
+        [class.btn-danger]="danger()"
+        [disabled]="busy()"
+        (click)="confirmed.emit()"
+      >
+        {{ busy() ? busyLabel() : confirmLabel() }}
+      </button>
+    </div>
+  </div>
+</div>

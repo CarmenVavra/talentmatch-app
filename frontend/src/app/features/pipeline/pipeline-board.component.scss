@@ -31,6 +31,19 @@
   color: var(--tm-gray);
 }
 
+.head-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.delete-warning {
+  padding: 10px 12px;
+  background: var(--tm-red-surface);
+  border-left: 4px solid var(--tm-red-bar);
+  color: var(--tm-ink);
+}
+
 .upload-button {
   min-width: 220px;
 }

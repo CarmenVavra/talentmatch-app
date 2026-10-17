@@ -82,6 +82,12 @@ export const routes: Routes = [
               import('./features/jobs/job-create.component').then((m) => m.JobCreateComponent),
           },
           {
+            path: 'jobs/:jobId/edit',
+            title: 'Stelle bearbeiten · TalentMatch',
+            loadComponent: () =>
+              import('./features/jobs/job-create.component').then((m) => m.JobCreateComponent),
+          },
+          {
             path: 'jobs/:jobId/pipeline',
             title: 'Pipeline · TalentMatch',
             loadComponent: () =>

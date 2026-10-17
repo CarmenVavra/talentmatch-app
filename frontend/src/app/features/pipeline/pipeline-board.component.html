@@ -17,15 +17,31 @@
         <span class="skeleton sk-meta"></span>
       }
     </div>
-    <button
-      type="button"
-      class="btn btn-primary btn-lg btn-wide upload-button"
-      [disabled]="!store.job()"
-      (click)="uploadOpen.set(true)"
-    >
-      Lebensläufe hochladen
-      <lucide-icon [img]="icons.upload" [size]="16" aria-hidden="true" />
-    </button>
+    <div class="head-actions">
+      @if (store.job(); as job) {
+        <a class="btn btn-secondary btn-lg edit-job" [routerLink]="['/jobs', job.id, 'edit']">
+          <lucide-icon [img]="icons.pencil" [size]="16" aria-hidden="true" />
+          Bearbeiten
+        </a>
+        <button
+          type="button"
+          class="btn btn-secondary btn-lg btn-danger-text delete-job"
+          (click)="deleteOpen.set(true)"
+        >
+          <lucide-icon [img]="icons.trash" [size]="16" aria-hidden="true" />
+          Löschen
+        </button>
+      }
+      <button
+        type="button"
+        class="btn btn-primary btn-lg btn-wide upload-button"
+        [disabled]="!store.job()"
+        (click)="uploadOpen.set(true)"
+      >
+        Lebensläufe hochladen
+        <lucide-icon [img]="icons.upload" [size]="16" aria-hidden="true" />
+      </button>
+    </div>
   </div>
 
   <div class="filters">
@@ -125,4 +141,27 @@
 
 @if (uploadOpen() && store.job(); as job) {
   <app-upload-dialog [job]="job" (closed)="uploadOpen.set(false)" />
+}
+
+@if (deleteOpen() && store.job(); as job) {
+  <app-confirm-dialog
+    title="Stelle löschen?"
+    confirmLabel="Endgültig löschen"
+    busyLabel="Wird gelöscht …"
+    [danger]="true"
+    [busy]="deleting()"
+    (confirmed)="deleteJob()"
+    (cancelled)="deleteOpen.set(false)"
+  >
+    <p>
+      Die Stelle <strong>„{{ job.title }}“</strong> wird endgültig gelöscht.
+    </p>
+    @if (store.total() > 0) {
+      <p class="delete-warning">
+        Damit werden auch alle <strong>{{ store.total() }} Bewerbungen</strong> inklusive Unterlagen
+        und KI-Analysen gelöscht – auch Bewerber:innen sehen sie danach nicht mehr.
+      </p>
+    }
+    <p>Das lässt sich nicht rückgängig machen.</p>
+  </app-confirm-dialog>
 }

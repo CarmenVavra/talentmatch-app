@@ -92,3 +92,20 @@
 .submit {
   min-width: 200px;
 }
+
+.edit-hint {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+  background: var(--tm-yellow-surface);
+  border-left: 4px solid var(--tm-yellow-bar);
+
+  lucide-icon {
+    flex: none;
+    margin-top: 2px;
+    color: var(--tm-yellow-icon);
+  }
+}

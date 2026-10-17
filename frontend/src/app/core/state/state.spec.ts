@@ -80,6 +80,33 @@ describe('JobStore', () => {
     expect(store.pipelineJobId()).toBe(3);
   });
 
+  it('replaces an updated job and removes a deleted one', () => {
+    store.load();
+    http.expectOne('/api/jobs').flush([makeJob({ id: 3 }), makeJob({ id: 4 })]);
+    http.expectOne('/api/dashboard/kpis').flush(makeKpis());
+    store.select(4);
+
+    store
+      .update(3, {
+        title: 'Neu',
+        department: 'Data',
+        experienceLevel: 'Mid',
+        location: 'Berlin',
+        description: '',
+        requiredSkills: ['SQL'],
+      })
+      .subscribe();
+    http.expectOne('/api/jobs/3').flush(makeJob({ id: 3, title: 'Neu' }));
+    expect(store.jobs()[0].title).toBe('Neu');
+
+    store.delete(4).subscribe();
+    http.expectOne('/api/jobs/4').flush(null);
+    expect(store.jobs().map((j) => j.id)).toEqual([3]);
+    expect(store.selectedJobId()).toBeNull();
+    expect(localStorage.getItem(PIPELINE_JOB_KEY)).toBeNull();
+    expect(store.pipelineJobId()).toBe(3);
+  });
+
   it('reports load errors', () => {
     store.load();
     const jobs = http.expectOne('/api/jobs');

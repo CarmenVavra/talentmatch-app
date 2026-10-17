@@ -151,5 +151,78 @@ describe('job pages', () => {
       http.expectNone('/api/jobs');
       expect(root.textContent).toContain('Mindestens ein Skill ist erforderlich.');
     });
+
+    describe('edit mode', () => {
+      async function renderEdit(
+        job = makeJob({ id: 4, department: 'Legal', totalApplications: 3 }),
+      ) {
+        const fixture = TestBed.createComponent(JobCreateComponent);
+        fixture.componentRef.setInput('jobId', String(job.id));
+        await fixture.whenStable();
+        http.expectOne(`/api/jobs/${job.id}`).flush(job);
+        await fixture.whenStable();
+        return fixture;
+      }
+
+      it('prefills the form with the existing job', async () => {
+        const fixture = await renderEdit();
+        const root = fixture.nativeElement as HTMLElement;
+        expect(root.querySelector('h1')?.textContent).toContain('Stelle bearbeiten');
+        expect((root.querySelector('#title') as HTMLInputElement).value).toBe(
+          'Senior Java Developer',
+        );
+        expect((root.querySelector('#description') as HTMLTextAreaElement).value).toBe(
+          'Microservices',
+        );
+        expect(root.querySelectorAll('.skill-chip').length).toBe(3);
+        // Abweichende Abteilung bleibt wählbar und ausgewählt
+        const legal = Array.from(root.querySelectorAll('.seg-opt')).find((o) =>
+          o.textContent?.includes('Legal'),
+        );
+        expect((legal?.querySelector('input') as HTMLInputElement).checked).toBeTrue();
+        expect(root.querySelector('.edit-hint')?.textContent).toContain('3 Bewerbungen');
+        expect(root.querySelector('.cancel')?.getAttribute('href')).toBe('/jobs/4/pipeline');
+      });
+
+      it('saves the changes with PUT and returns to the pipeline', async () => {
+        const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+        const fixture = await renderEdit();
+        const root = fixture.nativeElement as HTMLElement;
+        const title = root.querySelector('#title') as HTMLInputElement;
+        title.value = 'Lead Java Developer';
+        title.dispatchEvent(new Event('input'));
+        expect(root.querySelector('.submit')?.textContent).toContain('Änderungen speichern');
+
+        (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+        const req = http.expectOne('/api/jobs/4');
+        expect(req.request.method).toBe('PUT');
+        expect(req.request.body).toEqual(
+          jasmine.objectContaining({
+            title: 'Lead Java Developer',
+            department: 'Legal',
+            experienceLevel: 'Senior',
+            requiredSkills: ['Java', 'Spring Boot', 'Kubernetes'],
+          }),
+        );
+        req.flush(makeJob({ id: 4, title: 'Lead Java Developer' }));
+        expect(navigate).toHaveBeenCalledWith(['/jobs', 4, 'pipeline']);
+      });
+
+      it('shows an error when the job cannot be loaded', async () => {
+        const fixture = TestBed.createComponent(JobCreateComponent);
+        fixture.componentRef.setInput('jobId', '99');
+        await fixture.whenStable();
+        http
+          .expectOne('/api/jobs/99')
+          .flush(
+            { detail: 'Stelle mit ID 99 wurde nicht gefunden.' },
+            { status: 404, statusText: 'NF' },
+          );
+        await fixture.whenStable();
+        const root = fixture.nativeElement as HTMLElement;
+        expect(root.querySelector('.alert')?.textContent).toContain('nicht gefunden');
+        expect((root.querySelector('.submit') as HTMLButtonElement).disabled).toBeTrue();
+      });
+    });
   });
 });
