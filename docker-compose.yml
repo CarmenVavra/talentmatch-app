@@ -1,0 +1,38 @@
+# TalentMatch mit PostgreSQL – Start: docker compose up --build  →  http://localhost:8081
+# Optional: OPENAI_API_KEY in einer .env-Datei neben dieser Datei setzen.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: talentmatch
+      POSTGRES_USER: talentmatch
+      POSTGRES_PASSWORD: talentmatch
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U talentmatch"]
+      interval: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: postgres
+      DB_URL: jdbc:postgresql://db:5432/talentmatch
+      DB_USERNAME: talentmatch
+      DB_PASSWORD: talentmatch
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-not-configured}
+      TALENTMATCH_JWT_SECRET: ${TALENTMATCH_JWT_SECRET:-dGFsZW50bWF0Y2gtZG9ja2VyLWRldi1zZWNyZXQtY2hhbmdlLW1lLXBsZWFzZSE=}
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "8081:80"
+
+volumes:
+  db-data:
