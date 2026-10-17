@@ -104,8 +104,31 @@ describe('ApplicationDetailStore', () => {
 
   it('loads the original PDF as blob URL', () => {
     store.detail.set(makeDetail({ resumeFileName: 'cv.pdf' }));
-    store.loadResume();
+    store.loadDocument('resume');
     http.expectOne('/api/applications/10/resume').flush(new Blob(['%PDF']));
-    expect(store.resumeUrl()).toMatch(/^blob:/);
+    expect(store.documentUrls().resume).toMatch(/^blob:/);
+  });
+
+  it('loads optional documents once and skips missing ones', () => {
+    store.detail.set(makeDetail({ skillProfileFileName: 'skills.pdf' }));
+    store.loadDocument('cover-letter');
+    http.expectNone('/api/applications/10/cover-letter');
+
+    store.loadDocument('skill-profile');
+    store.loadDocument('skill-profile');
+    http.expectOne('/api/applications/10/skill-profile').flush(new Blob(['%PDF']));
+    expect(store.documentUrls()['skill-profile']).toMatch(/^blob:/);
+    store.loadDocument('skill-profile');
+    http.expectNone('/api/applications/10/skill-profile');
+  });
+
+  it('keeps document errors per document', () => {
+    store.detail.set(makeDetail({ coverLetterFileName: 'brief.pdf' }));
+    store.loadDocument('cover-letter');
+    http
+      .expectOne('/api/applications/10/cover-letter')
+      .flush(new Blob(['{}']), { status: 404, statusText: 'Not Found' });
+    expect(store.documentErrors()['cover-letter']).toBe('Das PDF konnte nicht geladen werden.');
+    expect(store.documentErrors().resume).toBeUndefined();
   });
 });

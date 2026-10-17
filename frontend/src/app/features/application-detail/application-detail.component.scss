@@ -191,6 +191,15 @@ a.contact-item:hover {
   font-size: 14px;
 }
 
+.self-reported {
+  padding: 1px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tm-blue);
+  background: var(--tm-blue-tint-2);
+  white-space: nowrap;
+}
+
 .risk-line {
   align-items: flex-start;
 

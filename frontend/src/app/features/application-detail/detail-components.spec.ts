@@ -70,6 +70,22 @@ describe('detail components', () => {
       expect((root.querySelector('.invite') as HTMLButtonElement).disabled).toBeTrue();
     });
 
+    it('marks skills that only the skill profile confirms', async () => {
+      const fixture = await render(
+        makeDetail({
+          analysis: makeAnalysis({
+            matchingSkills: ['Java', 'Spring Boot'],
+            skillsFromSkillProfile: ['Spring Boot'],
+          }),
+        }),
+      );
+      const lines = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll('.pro .skill-line'),
+      );
+      expect(lines.map((l) => l.querySelector('.self-reported') !== null)).toEqual([false, true]);
+      expect(lines[1].textContent).toContain('laut Skill-Profil');
+    });
+
     it('changes the status via the action buttons', async () => {
       const fixture = await render();
       const buttons = fixture.nativeElement.querySelectorAll('.actions button');
@@ -131,6 +147,35 @@ describe('detail components', () => {
       http.expectOne('/api/applications/10/resume').flush(new Blob(['%PDF']));
       await fixture.whenStable();
       expect(fixture.nativeElement.querySelector('iframe.pdf-viewer')).not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.doc-switch')).toBeNull();
+    });
+
+    it('switches between resume, skill profile and cover letter', async () => {
+      TestBed.inject(ApplicationDetailStore).detail.set(
+        makeDetail({
+          resumeFileName: 'cv.pdf',
+          skillProfileFileName: 'skills.pdf',
+          coverLetterFileName: 'brief.pdf',
+        }),
+      );
+      const fixture = TestBed.createComponent(ResumePanelComponent);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.querySelector('h4')?.textContent).toContain('Unterlagen');
+      expect(root.textContent).toContain('PDF-Vorschau (3)');
+
+      (root.querySelectorAll('.seg-opt input')[1] as HTMLInputElement).click();
+      http.expectOne('/api/applications/10/resume').flush(new Blob(['%PDF']));
+      await fixture.whenStable();
+      const switchOptions = root.querySelectorAll('.doc-switch .seg-opt input');
+      expect(
+        Array.from(root.querySelectorAll('.doc-switch .seg-opt')).map((o) => o.textContent?.trim()),
+      ).toEqual(['Lebenslauf', 'Skill-Profil', 'Anschreiben']);
+
+      (switchOptions[2] as HTMLInputElement).click();
+      http.expectOne('/api/applications/10/cover-letter').flush(new Blob(['%PDF']));
+      await fixture.whenStable();
+      expect(root.querySelector('iframe.pdf-viewer')?.getAttribute('title')).toContain('brief.pdf');
     });
   });
 });

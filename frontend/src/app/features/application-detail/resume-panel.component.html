@@ -1,10 +1,10 @@
 @if (detail(); as d) {
   <div class="panel">
     <div class="panel-head">
-      <h4>Lebenslauf</h4>
+      <h4>{{ documentOptions().length > 1 ? 'Unterlagen' : 'Lebenslauf' }}</h4>
       <app-segmented-control
         ariaLabel="Ansicht Lebenslauf"
-        [options]="tabOptions"
+        [options]="tabOptions()"
         [value]="tab()"
         (valueChange)="selectTab($event)"
       />
@@ -62,14 +62,20 @@
       }
     } @else {
       <div class="pdf-frame">
-        @if (d.resumeFileName) {
+        @if (documentOptions().length > 1) {
+          <div class="doc-switch">
+            <app-segmented-control
+              ariaLabel="Unterlage auswählen"
+              [options]="documentOptions()"
+              [value]="document()"
+              (valueChange)="selectDocument($event)"
+            />
+          </div>
+        }
+        @if (fileName(); as name) {
           @if (pdfUrl(); as url) {
-            <iframe
-              class="pdf-viewer"
-              [src]="url"
-              [title]="'PDF-Vorschau ' + d.resumeFileName"
-            ></iframe>
-          } @else if (store.resumeError(); as message) {
+            <iframe class="pdf-viewer" [src]="url" [title]="'PDF-Vorschau ' + name"></iframe>
+          } @else if (pdfError(); as message) {
             <div class="alert" role="alert">{{ message }}</div>
           } @else {
             <div class="page skeleton"></div>

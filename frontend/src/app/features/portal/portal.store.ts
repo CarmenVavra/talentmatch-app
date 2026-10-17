@@ -3,7 +3,7 @@ import { Observable, tap } from 'rxjs';
 
 import { ApplicantApiService } from '../../core/api/applicant-api.service';
 import { AuthService } from '../../core/auth/auth.service';
-import { MyApplication, OpenJob } from '../../core/models/api.models';
+import { ApplicationDocuments, MyApplication, OpenJob } from '../../core/models/api.models';
 import { errorMessage } from '../../core/util/http-error';
 
 /** Zustand des Bewerber-Portals (offene Stellen und eigene Bewerbungen). */
@@ -57,8 +57,8 @@ export class PortalStore {
   }
 
   /** Reicht eine Bewerbung ein und markiert die Stelle als „beworben“. */
-  apply(jobId: number, file: File): Observable<MyApplication> {
-    return this.api.apply(jobId, file).pipe(
+  apply(jobId: number, documents: ApplicationDocuments): Observable<MyApplication> {
+    return this.api.apply(jobId, documents).pipe(
       tap((application) => {
         this.jobs.update((list) => list.map((j) => (j.id === jobId ? { ...j, applied: true } : j)));
         this.applications.update((list) => [application, ...list]);

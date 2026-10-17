@@ -2,7 +2,12 @@ import { HttpClient, HttpEvent } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { ApplicationDetail, ApplicationStatus, ApplicationSummary } from '../models/api.models';
+import {
+  ApplicationDetail,
+  ApplicationStatus,
+  ApplicationSummary,
+  DocumentKind,
+} from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class ApplicationApiService {
@@ -50,7 +55,8 @@ export class ApplicationApiService {
     });
   }
 
-  resume(id: number): Observable<Blob> {
-    return this.http.get(`/api/applications/${id}/resume`, { responseType: 'blob' });
+  /** Original-PDF einer Bewerbungsunterlage. */
+  document(id: number, kind: DocumentKind): Observable<Blob> {
+    return this.http.get(`/api/applications/${id}/${kind}`, { responseType: 'blob' });
   }
 }

@@ -12,12 +12,26 @@ import {
 } from 'rxjs';
 
 import { ApplicationApiService } from '../../core/api/application-api.service';
-import { ApplicationDetail, ApplicationStatus } from '../../core/models/api.models';
+import { ApplicationDetail, ApplicationStatus, DocumentKind } from '../../core/models/api.models';
 import { JobStore } from '../../core/state/job.store';
 import { ToastService } from '../../core/state/toast.service';
 import { errorMessage } from '../../core/util/http-error';
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error';
+
+type ByDocument<T> = Partial<Record<DocumentKind, T>>;
+
+/** Dateiname einer eingereichten Unterlage oder null, wenn sie fehlt. */
+export function documentFileName(detail: ApplicationDetail, kind: DocumentKind): string | null {
+  switch (kind) {
+    case 'resume':
+      return detail.resumeFileName;
+    case 'skill-profile':
+      return detail.skillProfileFileName;
+    case 'cover-letter':
+      return detail.coverLetterFileName;
+  }
+}
 
 /** Zustand der Bewerber-Detailseite (AI Analytics View). */
 @Injectable()
@@ -27,7 +41,7 @@ export class ApplicationDetailStore {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly notes$ = new Subject<string>();
-  private resumeObjectUrl: string | null = null;
+  private readonly objectUrls = new Map<DocumentKind, string>();
 
   readonly detail = signal<ApplicationDetail | null>(null);
   readonly loading = signal(false);
@@ -36,9 +50,10 @@ export class ApplicationDetailStore {
   readonly analyzeError = signal<string | null>(null);
   readonly generating = signal(false);
   readonly notesState = signal<SaveState>('idle');
-  readonly resumeUrl = signal<string | null>(null);
-  readonly resumeLoading = signal(false);
-  readonly resumeError = signal<string | null>(null);
+  /** Blob-URLs der geladenen Original-PDFs je Unterlage. */
+  readonly documentUrls = signal<ByDocument<string>>({});
+  readonly documentLoading = signal<ByDocument<boolean>>({});
+  readonly documentErrors = signal<ByDocument<string>>({});
 
   readonly analysis = computed(() => this.detail()?.analysis ?? null);
   readonly questions = computed(() => this.analysis()?.questions ?? []);
@@ -59,13 +74,13 @@ export class ApplicationDetailStore {
         takeUntilDestroyed(this.destroyRef),
       )
       .subscribe((state) => this.notesState.set(state));
-    this.destroyRef.onDestroy(() => this.revokeResume());
+    this.destroyRef.onDestroy(() => this.revokeDocuments());
   }
 
   load(id: number): void {
     this.loading.set(true);
     this.error.set(null);
-    this.revokeResume();
+    this.revokeDocuments();
     this.api
       .get(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -167,26 +182,33 @@ export class ApplicationDetailStore {
       });
   }
 
-  /** Lädt das Original-PDF als Blob-URL für die PDF-Vorschau (einmal pro Bewerbung). */
-  loadResume(): void {
+  /** Lädt das Original-PDF einer Unterlage als Blob-URL für die PDF-Vorschau (einmal pro Bewerbung). */
+  loadDocument(kind: DocumentKind): void {
     const current = this.detail();
-    if (!current?.resumeFileName || this.resumeUrl() || this.resumeLoading()) {
+    if (
+      !current ||
+      !documentFileName(current, kind) ||
+      this.documentUrls()[kind] ||
+      this.documentLoading()[kind]
+    ) {
       return;
     }
-    this.resumeLoading.set(true);
-    this.resumeError.set(null);
+    this.documentLoading.update((loading) => ({ ...loading, [kind]: true }));
+    this.documentErrors.update((errors) => ({ ...errors, [kind]: undefined }));
     this.api
-      .resume(current.id)
+      .document(current.id, kind)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob) => {
-          this.resumeObjectUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
-          this.resumeUrl.set(this.resumeObjectUrl);
-          this.resumeLoading.set(false);
+          const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+          this.objectUrls.set(kind, url);
+          this.documentUrls.update((urls) => ({ ...urls, [kind]: url }));
+          this.documentLoading.update((loading) => ({ ...loading, [kind]: false }));
         },
         error: (err: unknown) => {
-          this.resumeError.set(errorMessage(err, 'Das PDF konnte nicht geladen werden.'));
-          this.resumeLoading.set(false);
+          const message = errorMessage(err, 'Das PDF konnte nicht geladen werden.');
+          this.documentErrors.update((errors) => ({ ...errors, [kind]: message }));
+          this.documentLoading.update((loading) => ({ ...loading, [kind]: false }));
         },
       });
   }
@@ -215,11 +237,11 @@ export class ApplicationDetailStore {
     return id;
   }
 
-  private revokeResume(): void {
-    if (this.resumeObjectUrl) {
-      URL.revokeObjectURL(this.resumeObjectUrl);
-      this.resumeObjectUrl = null;
-    }
-    this.resumeUrl.set(null);
+  private revokeDocuments(): void {
+    this.objectUrls.forEach((url) => URL.revokeObjectURL(url));
+    this.objectUrls.clear();
+    this.documentUrls.set({});
+    this.documentLoading.set({});
+    this.documentErrors.set({});
   }
 }

@@ -8,7 +8,11 @@ import { MyApplication, OpenJob } from '../../core/models/api.models';
 import { applicantStatusMeta } from '../../core/util/applicant-status';
 import { makeUser } from '../../testing/test-data';
 import { ApplyDialogComponent } from './apply-dialog.component';
-import { MyApplicationsComponent, statusSteps } from './my-applications.component';
+import {
+  MyApplicationsComponent,
+  statusSteps,
+  submittedDocuments,
+} from './my-applications.component';
 import { PortalJobsComponent, filterOpenJobs } from './portal-jobs.component';
 import { PortalStore } from './portal.store';
 
@@ -37,12 +41,14 @@ function myApplication(overrides: Partial<MyApplication> = {}): MyApplication {
     status: 'RECEIVED',
     submittedAt: '2026-10-08T10:15:00',
     resumeFileName: 'cv.pdf',
+    skillProfileFileName: null,
+    coverLetterFileName: null,
     ...overrides,
   };
 }
 
-function pdf(): File {
-  return new File(['%PDF-1.4'], 'Lebenslauf.pdf', { type: 'application/pdf' });
+function pdf(name = 'Lebenslauf.pdf'): File {
+  return new File(['%PDF-1.4'], name, { type: 'application/pdf' });
 }
 
 describe('portal helpers', () => {
@@ -77,6 +83,15 @@ describe('portal helpers', () => {
     ]);
     expect(statusSteps('REJECTED').map((s) => s.label)).toEqual(['Eingegangen', 'Absage']);
   });
+
+  it('lists the submitted documents', () => {
+    expect(submittedDocuments(myApplication())).toEqual(['Lebenslauf']);
+    expect(
+      submittedDocuments(
+        myApplication({ skillProfileFileName: 's.pdf', coverLetterFileName: 'a.pdf' }),
+      ),
+    ).toEqual(['Lebenslauf', 'Skill-Profil', 'Anschreiben']);
+  });
 });
 
 describe('portal', () => {
@@ -107,13 +122,32 @@ describe('portal', () => {
       store.loadJobs();
       http.expectOne('/api/applicant/jobs').flush([openJob()]);
 
-      store.apply(3, pdf()).subscribe();
+      store.apply(3, { resume: pdf(), skillProfile: null, coverLetter: null }).subscribe();
       const req = http.expectOne('/api/applicant/jobs/3/applications');
-      expect(req.request.body instanceof FormData).toBeTrue();
+      const body = req.request.body as FormData;
+      expect(body.has('file')).toBeTrue();
+      expect(body.has('skillProfile')).toBeFalse();
+      expect(body.has('coverLetter')).toBeFalse();
       req.flush(myApplication());
 
       expect(store.jobs()[0].applied).toBeTrue();
       expect(store.applications().length).toBe(1);
+    });
+
+    it('sends skill profile and cover letter as separate parts', () => {
+      const store = TestBed.inject(PortalStore);
+      store
+        .apply(3, {
+          resume: pdf(),
+          skillProfile: pdf('skills.pdf'),
+          coverLetter: pdf('brief.pdf'),
+        })
+        .subscribe();
+      const req = http.expectOne('/api/applicant/jobs/3/applications');
+      const body = req.request.body as FormData;
+      expect((body.get('skillProfile') as File).name).toBe('skills.pdf');
+      expect((body.get('coverLetter') as File).name).toBe('brief.pdf');
+      req.flush(myApplication());
     });
 
     it('drops cached data when another account signs in', () => {
@@ -189,6 +223,44 @@ describe('portal', () => {
       expect(root.querySelector('.success')?.textContent).toContain('Vielen Dank');
     });
 
+    it('adds and removes optional documents and sends them along', async () => {
+      const fixture = TestBed.createComponent(ApplyDialogComponent);
+      fixture.componentRef.setInput('job', openJob());
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      const dropOn = (target: Element, file: File) => {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        target.dispatchEvent(new DragEvent('drop', { dataTransfer, cancelable: true }));
+      };
+      const slots = () => root.querySelectorAll('.doc-slot');
+      expect(slots().length).toBe(2);
+
+      dropOn(slots()[0], new File(['x'], 'skills.docx'));
+      await fixture.whenStable();
+      expect(root.querySelector('.alert')?.textContent).toContain('Skill-Profil: ');
+
+      dropOn(root.querySelector('.dropzone')!, pdf());
+      dropOn(slots()[0], pdf('skills.pdf'));
+      dropOn(slots()[1], pdf('brief.pdf'));
+      await fixture.whenStable();
+      expect(root.querySelector('.alert')).toBeNull();
+      expect(root.querySelectorAll('.doc-slot.filled').length).toBe(2);
+
+      (root.querySelector('.slot-remove') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      expect(slots()[0].classList).not.toContain('filled');
+
+      (root.querySelector('.send') as HTMLButtonElement).click();
+      const req = http.expectOne('/api/applicant/jobs/3/applications');
+      const body = req.request.body as FormData;
+      expect(body.has('skillProfile')).toBeFalse();
+      expect((body.get('coverLetter') as File).name).toBe('brief.pdf');
+      req.flush(myApplication({ coverLetterFileName: 'brief.pdf' }));
+      await fixture.whenStable();
+      expect(root.querySelector('.success')).not.toBeNull();
+    });
+
     it('shows the server message on conflict', async () => {
       const fixture = TestBed.createComponent(ApplyDialogComponent);
       fixture.componentRef.setInput('job', openJob());
@@ -230,6 +302,7 @@ describe('portal', () => {
       );
       expect(tags).toEqual(['Einladung zum Interview', 'Eingegangen']);
       expect(root.querySelectorAll('.step.current').length).toBe(2);
+      expect(root.querySelector('.documents')?.textContent).toContain('Eingereicht: Lebenslauf');
       expect(root.textContent).not.toContain('Score');
     });
 

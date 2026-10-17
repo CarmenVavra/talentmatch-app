@@ -57,7 +57,19 @@ export interface MyApplication {
   status: ApplicantStatus;
   submittedAt: string;
   resumeFileName: string | null;
+  skillProfileFileName: string | null;
+  coverLetterFileName: string | null;
 }
+
+/** Bewerbungsunterlagen (PDF): Lebenslauf ist Pflicht, Skill-Profil und Anschreiben sind optional. */
+export interface ApplicationDocuments {
+  resume: File;
+  skillProfile: File | null;
+  coverLetter: File | null;
+}
+
+/** Pfadsegment der Unterlagen-Endpunkte {@code /api/applications/{id}/{kind}}. */
+export type DocumentKind = 'resume' | 'skill-profile' | 'cover-letter';
 
 export interface ChangePasswordRequest {
   currentPassword: string;
@@ -155,6 +167,8 @@ export interface Analysis {
   summary: string;
   matchingSkills: string[];
   missingSkills: string[];
+  /** Teilmenge von matchingSkills, die nur das Skill-Profil (Selbstauskunft) belegt. */
+  skillsFromSkillProfile: string[];
   riskFactors: string[];
   questions: InterviewQuestion[];
   model: string;
@@ -188,6 +202,8 @@ export interface ApplicationDetail {
   createdAt: string;
   interviewNotes: string | null;
   resumeFileName: string | null;
+  skillProfileFileName: string | null;
+  coverLetterFileName: string | null;
   job: JobRef;
   candidate: CandidateDetail;
   analysis: Analysis | null;

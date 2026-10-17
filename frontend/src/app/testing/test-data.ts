@@ -81,6 +81,7 @@ export function makeAnalysis(overrides: Partial<Analysis> = {}): Analysis {
     summary: 'Sehr starke Passung.',
     matchingSkills: ['Java', 'Spring Boot'],
     missingSkills: ['AWS'],
+    skillsFromSkillProfile: [],
     riskFactors: ['Kündigungsfrist von 3 Monaten'],
     questions: [
       { index: 0, topic: 'Architektur', text: 'Welche Muster?', discussed: true },
@@ -99,6 +100,8 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
     createdAt: '2026-10-04T09:00:00',
     interviewNotes: null,
     resumeFileName: null,
+    skillProfileFileName: null,
+    coverLetterFileName: null,
     job: {
       id: 1,
       title: 'Senior Java Developer',

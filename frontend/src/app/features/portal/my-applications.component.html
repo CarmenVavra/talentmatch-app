@@ -51,6 +51,13 @@
               }}</span>
             </div>
             <p class="message">{{ m.message }}</p>
+            @let docs = documents(application);
+            @if (docs.length) {
+              <span class="documents">
+                <lucide-icon [img]="icons.fileText" [size]="14" aria-hidden="true" />
+                Eingereicht: {{ docs.join(' · ') }}
+              </span>
+            }
           </div>
           <ol class="steps" aria-label="Fortschritt der Bewerbung">
             @for (step of steps(application.status); track $index) {

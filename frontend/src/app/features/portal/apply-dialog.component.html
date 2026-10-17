@@ -52,19 +52,19 @@
       } @else {
         <p class="intro muted">
           {{ job().experienceLevel }} · {{ job().location }} · Laden Sie Ihren Lebenslauf als PDF
-          hoch.
+          hoch – optional auch Skill-Profil und Anschreiben.
         </p>
         <div
           class="dropzone"
           role="button"
           tabindex="0"
-          [class.hot]="zoneHot()"
+          [class.hot]="hotSlot() === 'resume'"
           (click)="pickFile()"
           (keydown.enter)="pickFile()"
           (keydown.space)="$event.preventDefault(); pickFile()"
-          (dragover)="onDragOver($event)"
-          (dragleave)="zoneHot.set(false)"
-          (drop)="onDrop($event)"
+          (dragover)="onDragOver($event, 'resume')"
+          (dragleave)="hotSlot.set(null)"
+          (drop)="onDrop($event, 'resume')"
         >
           <lucide-icon
             class="zone-icon"
@@ -82,7 +82,7 @@
             class="visually-hidden"
             tabindex="-1"
             aria-label="Lebenslauf auswählen"
-            (change)="onFileSelected(fileInput)"
+            (change)="onFileSelected('resume', fileInput)"
           />
         </div>
 
@@ -99,6 +99,71 @@
             <span class="file-size">{{ size(selected) }}</span>
           </div>
         }
+
+        <section class="extras" aria-labelledby="extras-title">
+          <div class="extras-head">
+            <h6 id="extras-title">Weitere Unterlagen</h6>
+            <span class="muted">optional · PDF, max. 10 MB</span>
+          </div>
+          @for (slot of optionalSlots; track slot.key) {
+            @let selected = files()[slot.key];
+            <div
+              class="doc-slot"
+              [class.hot]="hotSlot() === slot.key"
+              [class.filled]="selected"
+              (dragover)="onDragOver($event, slot.key)"
+              (dragleave)="hotSlot.set(null)"
+              (drop)="onDrop($event, slot.key)"
+            >
+              <lucide-icon
+                class="slot-icon"
+                [img]="icons.fileText"
+                [size]="20"
+                [strokeWidth]="1.8"
+                aria-hidden="true"
+              />
+              <div class="slot-text">
+                <span class="slot-label">{{ slot.label }}</span>
+                @if (selected) {
+                  <span class="slot-file" [title]="selected.name"
+                    >{{ selected.name }} · {{ size(selected) }}</span
+                  >
+                } @else {
+                  <span class="slot-hint">{{ slot.hint }}</span>
+                }
+              </div>
+              @if (selected) {
+                <button
+                  type="button"
+                  class="btn btn-icon btn-ghost slot-remove"
+                  [attr.aria-label]="slot.label + ' entfernen'"
+                  [disabled]="submitting()"
+                  (click)="remove(slot.key)"
+                >
+                  <lucide-icon [img]="icons.x" [size]="16" aria-hidden="true" />
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="btn btn-secondary slot-pick"
+                  [attr.aria-label]="slot.label + ' auswählen'"
+                  (click)="slotInput.click()"
+                >
+                  PDF auswählen
+                </button>
+              }
+              <input
+                #slotInput
+                type="file"
+                accept=".pdf,application/pdf"
+                class="visually-hidden"
+                tabindex="-1"
+                [attr.aria-label]="slot.label + ' auswählen'"
+                (change)="onFileSelected(slot.key, slotInput)"
+              />
+            </div>
+          }
+        </section>
 
         @if (error(); as message) {
           <div class="alert" role="alert">

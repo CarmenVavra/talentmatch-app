@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 
-import { MyApplication, OpenJob } from '../models/api.models';
+import { ApplicationDocuments, MyApplication, OpenJob } from '../models/api.models';
 
 /** Endpunkte des Bewerber-Portals (Rolle APPLICANT). */
 @Injectable({ providedIn: 'root' })
@@ -17,9 +17,16 @@ export class ApplicantApiService {
     return this.http.get<MyApplication[]>('/api/applicant/applications');
   }
 
-  apply(jobId: number, file: File): Observable<MyApplication> {
+  /** Multipart: „file“ (Lebenslauf) sowie optional „skillProfile“ und „coverLetter“. */
+  apply(jobId: number, documents: ApplicationDocuments): Observable<MyApplication> {
     const body = new FormData();
-    body.append('file', file, file.name);
+    body.append('file', documents.resume, documents.resume.name);
+    if (documents.skillProfile) {
+      body.append('skillProfile', documents.skillProfile, documents.skillProfile.name);
+    }
+    if (documents.coverLetter) {
+      body.append('coverLetter', documents.coverLetter, documents.coverLetter.name);
+    }
     return this.http.post<MyApplication>(`/api/applicant/jobs/${jobId}/applications`, body);
   }
 }

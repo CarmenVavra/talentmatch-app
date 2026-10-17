@@ -117,6 +117,13 @@
                       aria-hidden="true"
                     />
                     {{ skill }}
+                    @if (a.skillsFromSkillProfile.includes(skill)) {
+                      <span
+                        class="self-reported"
+                        title="Nur im Skill-Profil angegeben (Selbstauskunft), im Lebenslauf nicht belegt"
+                        >laut Skill-Profil</span
+                      >
+                    }
                   </span>
                 } @empty {
                   <span class="muted small">Keine</span>

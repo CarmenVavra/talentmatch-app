@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 
-import { ApplicantStatus } from '../../core/models/api.models';
+import { ApplicantStatus, MyApplication } from '../../core/models/api.models';
 import { ApplicantStatusMeta, applicantStatusMeta } from '../../core/util/applicant-status';
 import { ICONS } from '../../shared/icons';
 import { DeDatePipe } from '../../shared/pipes';
@@ -30,6 +30,15 @@ export function statusSteps(status: ApplicantStatus): Step[] {
   }));
 }
 
+/** Bezeichnungen der eingereichten Unterlagen (Lebenslauf, Skill-Profil, Anschreiben). */
+export function submittedDocuments(application: MyApplication): string[] {
+  return [
+    application.resumeFileName ? 'Lebenslauf' : null,
+    application.skillProfileFileName ? 'Skill-Profil' : null,
+    application.coverLetterFileName ? 'Anschreiben' : null,
+  ].filter((label): label is string => label !== null);
+}
+
 /** Portal: eigene Bewerbungen mit Status (ohne Match-Score). */
 @Component({
   selector: 'app-my-applications',
@@ -49,6 +58,10 @@ export class MyApplicationsComponent {
 
   protected meta(status: ApplicantStatus): ApplicantStatusMeta {
     return applicantStatusMeta(status);
+  }
+
+  protected documents(application: MyApplication): string[] {
+    return submittedDocuments(application);
   }
 
   protected steps(status: ApplicantStatus): Step[] {
