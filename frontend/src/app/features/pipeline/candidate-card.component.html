@@ -10,7 +10,12 @@
     {{ score() }}
   </div>
   <div class="who">
-    <span class="name">{{ app.candidate.firstName }} {{ app.candidate.lastName }}</span>
+    <span class="name"
+      >{{ app.candidate.firstName }} {{ app.candidate.lastName }}
+      @if (app.unread) {
+        <span class="new-badge" title="Neue Bewerbung über das Bewerber-Portal">Neu</span>
+      }
+    </span>
     <span class="role">{{ position() }}</span>
   </div>
 </div>

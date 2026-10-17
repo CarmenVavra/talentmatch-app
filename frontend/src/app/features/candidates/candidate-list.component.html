@@ -73,6 +73,11 @@
               <td class="cell-person">
                 <div class="row-title">
                   {{ app.candidate.firstName }} {{ app.candidate.lastName }}
+                  @if (app.unread) {
+                    <span class="new-badge" title="Neue Bewerbung über das Bewerber-Portal"
+                      >Neu</span
+                    >
+                  }
                 </div>
                 <div class="row-sub">{{ position(app) }}</div>
               </td>

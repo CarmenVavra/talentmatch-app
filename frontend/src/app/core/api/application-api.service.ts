@@ -33,6 +33,11 @@ export class ApplicationApiService {
     return this.http.put<void>(`/api/applications/${id}/notes`, { notes });
   }
 
+  /** HR hat die Bewerbung geöffnet – entfernt die „Neu“-Markierung. */
+  markSeen(id: number): Observable<void> {
+    return this.http.post<void>(`/api/applications/${id}/seen`, {});
+  }
+
   markQuestion(id: number, index: number, discussed: boolean): Observable<void> {
     return this.http.patch<void>(`/api/applications/${id}/questions/${index}`, { discussed });
   }

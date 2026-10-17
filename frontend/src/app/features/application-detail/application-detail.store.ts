@@ -89,6 +89,9 @@ export class ApplicationDetailStore {
           this.detail.set(detail);
           this.jobStore.select(detail.job.id);
           this.loading.set(false);
+          if (detail.unread) {
+            this.markSeen(detail.id);
+          }
         },
         error: (err: unknown) => {
           this.error.set(errorMessage(err, 'Die Bewerbung konnte nicht geladen werden.'));
@@ -210,6 +213,17 @@ export class ApplicationDetailStore {
           this.documentErrors.update((errors) => ({ ...errors, [kind]: message }));
           this.documentLoading.update((loading) => ({ ...loading, [kind]: false }));
         },
+      });
+  }
+
+  /** Entfernt die „Neu“-Markierung; schlägt das fehl, bleibt sie einfach bis zum nächsten Öffnen. */
+  private markSeen(id: number): void {
+    this.api
+      .markSeen(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.detail.update((d) => (d?.id === id ? { ...d, unread: false } : d)),
+        error: () => undefined,
       });
   }
 

@@ -8,6 +8,7 @@ import { errorMessage } from '../util/http-error';
 export type JobViewMode = 'tiles' | 'table';
 
 const VIEW_MODE_KEY = 'talentmatch.jobs.viewMode';
+const PIPELINE_JOB_KEY = 'talentmatch.pipeline.jobId';
 
 /**
  * Stellen und Dashboard-Kennzahlen (Signals). Wird beim Öffnen des Dashboards frisch geladen,
@@ -22,12 +23,21 @@ export class JobStore {
   readonly loading = signal(false);
   readonly loaded = signal(false);
   readonly error = signal<string | null>(null);
-  readonly selectedJobId = signal<number | null>(null);
+  /** Zuletzt geöffnete Stelle – bleibt auch nach Ab- und Anmelden im Browser erhalten. */
+  readonly selectedJobId = signal<number | null>(restorePipelineJobId());
   /** Kachel- oder Tabellenansicht – bleibt erhalten, bis der Benutzer sie ändert. */
   readonly viewMode = signal<JobViewMode>(restoreViewMode());
 
-  /** Ziel des Nav-Punkts „Pipeline“: zuletzt geöffnete Stelle, sonst die neueste. */
-  readonly pipelineJobId = computed(() => this.selectedJobId() ?? this.jobs()[0]?.id ?? null);
+  /**
+   * Ziel des Nav-Punkts „Pipeline“: zuletzt geöffnete Stelle, sonst die neueste.
+   * Eine gemerkte Stelle, die es nicht mehr gibt, wird ignoriert.
+   */
+  readonly pipelineJobId = computed(() => {
+    const selected = this.selectedJobId();
+    const jobs = this.jobs();
+    const exists = selected !== null && (!this.loaded() || jobs.some((j) => j.id === selected));
+    return exists ? selected : (jobs[0]?.id ?? null);
+  });
 
   load(): void {
     this.loading.set(true);
@@ -66,6 +76,11 @@ export class JobStore {
 
   select(jobId: number): void {
     this.selectedJobId.set(jobId);
+    try {
+      localStorage.setItem(PIPELINE_JOB_KEY, String(jobId));
+    } catch {
+      // Ohne localStorage gilt die Auswahl nur bis zum Neuladen.
+    }
   }
 
   setViewMode(mode: JobViewMode): void {
@@ -75,6 +90,15 @@ export class JobStore {
     } catch {
       // Ohne localStorage gilt die Wahl nur bis zum Neuladen.
     }
+  }
+}
+
+function restorePipelineJobId(): number | null {
+  try {
+    const id = Number(localStorage.getItem(PIPELINE_JOB_KEY));
+    return Number.isInteger(id) && id > 0 ? id : null;
+  } catch {
+    return null;
   }
 }
 

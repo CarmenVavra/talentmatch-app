@@ -50,6 +50,11 @@ describe('PipelineStore', () => {
     expect(store.columns().length).toBe(5);
   });
 
+  it('puts new portal applications at the top of their column', () => {
+    store.upsert(makeSummary({ id: 5, overallScore: 40, status: 'MATCHED', unread: true }));
+    expect(column('MATCHED')).toEqual([5, 3, 1]);
+  });
+
   it('filters by minimum score but keeps unanalysed cards visible', () => {
     store.minScore.set(75);
     expect(column('MATCHED')).toEqual([3]);

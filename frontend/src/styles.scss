@@ -371,6 +371,20 @@ lucide-icon {
   background: var(--tm-blue-tint);
   color: var(--tm-blue-pressed);
 }
+/* „Neu“-Markierung für ungelesene Portal-Bewerbungen */
+.new-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  vertical-align: 2px;
+  color: #fff;
+  background: var(--tm-blue);
+}
+
 .tag-neutral {
   background: var(--tm-chip);
   color: var(--tm-ink-2);

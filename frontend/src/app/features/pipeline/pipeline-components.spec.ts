@@ -21,6 +21,14 @@ describe('CandidateCardComponent', () => {
     expect(root.querySelector('.role')?.textContent).toContain('Java Developer · Siemens');
     expect(root.querySelectorAll('.chip').length).toBe(3);
     expect(root.querySelector('.analyze')).toBeNull();
+    expect(root.querySelector('.new-badge')).toBeNull();
+  });
+
+  it('marks new portal applications', async () => {
+    const fixture = TestBed.createComponent(CandidateCardComponent);
+    fixture.componentRef.setInput('application', makeSummary({ unread: true }));
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.new-badge')?.textContent).toContain('Neu');
   });
 
   it('offers the AI analysis for unanalysed applications without bubbling the click', async () => {

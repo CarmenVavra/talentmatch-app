@@ -29,6 +29,21 @@ describe('ApplicationDetailStore', () => {
     expect(TestBed.inject(JobStore).pipelineJobId()).toBe(1);
   });
 
+  it('marks a new portal application as seen when it is opened', () => {
+    store.load(11);
+    http.expectOne('/api/applications/11').flush(makeDetail({ id: 11, unread: true }));
+    const seen = http.expectOne('/api/applications/11/seen');
+    expect(seen.request.method).toBe('POST');
+    seen.flush(null);
+    expect(store.detail()?.unread).toBeFalse();
+  });
+
+  it('does not mark already seen applications again', () => {
+    store.load(12);
+    http.expectOne('/api/applications/12').flush(makeDetail({ id: 12 }));
+    http.expectNone('/api/applications/12/seen');
+  });
+
   it('changes the status optimistically', () => {
     store.setStatus('HIRED');
     expect(store.detail()?.status).toBe('HIRED');

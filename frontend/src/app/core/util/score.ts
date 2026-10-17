@@ -86,3 +86,11 @@ export function statusMeta(status: ApplicationStatus): StatusMeta {
 export function compareByScore(a: number | null, b: number | null): number {
   return (b ?? 101) - (a ?? 101);
 }
+
+/** Reihenfolge in einer Pipeline-Spalte: neue Portal-Bewerbungen zuerst, danach nach Score. */
+export function comparePipelineCards(
+  a: { unread: boolean; overallScore: number | null },
+  b: { unread: boolean; overallScore: number | null },
+): number {
+  return Number(b.unread) - Number(a.unread) || compareByScore(a.overallScore, b.overallScore);
+}

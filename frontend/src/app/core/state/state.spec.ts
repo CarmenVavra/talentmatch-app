@@ -6,11 +6,14 @@ import { makeJob, makeKpis } from '../../testing/test-data';
 import { JobStore } from './job.store';
 import { ToastService } from './toast.service';
 
+const PIPELINE_JOB_KEY = 'talentmatch.pipeline.jobId';
+
 describe('JobStore', () => {
   let store: JobStore;
   let http: HttpTestingController;
 
   beforeEach(() => {
+    localStorage.removeItem(PIPELINE_JOB_KEY);
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
@@ -18,7 +21,10 @@ describe('JobStore', () => {
     http = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => http.verify());
+  afterEach(() => {
+    http.verify();
+    localStorage.removeItem(PIPELINE_JOB_KEY);
+  });
 
   it('loads jobs and KPIs together', () => {
     store.load();
@@ -47,6 +53,31 @@ describe('JobStore', () => {
   it('remembers the selected job for the pipeline link', () => {
     store.select(9);
     expect(store.pipelineJobId()).toBe(9);
+    expect(localStorage.getItem(PIPELINE_JOB_KEY)).toBe('9');
+  });
+
+  it('restores the last pipeline job after signing in again', () => {
+    store.select(4);
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
+    const restored = TestBed.inject(JobStore);
+    http = TestBed.inject(HttpTestingController);
+
+    expect(restored.pipelineJobId()).toBe(4);
+    restored.load();
+    http.expectOne('/api/jobs').flush([makeJob({ id: 3 }), makeJob({ id: 4 })]);
+    http.expectOne('/api/dashboard/kpis').flush(makeKpis());
+    expect(restored.pipelineJobId()).toBe(4);
+  });
+
+  it('falls back to the newest job when the remembered job no longer exists', () => {
+    store.select(99);
+    store.load();
+    http.expectOne('/api/jobs').flush([makeJob({ id: 3 }), makeJob({ id: 4 })]);
+    http.expectOne('/api/dashboard/kpis').flush(makeKpis());
+    expect(store.pipelineJobId()).toBe(3);
   });
 
   it('reports load errors', () => {

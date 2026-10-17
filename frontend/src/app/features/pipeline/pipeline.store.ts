@@ -9,7 +9,7 @@ import { JobStore } from '../../core/state/job.store';
 import { ToastService } from '../../core/state/toast.service';
 import { toSummary } from '../../core/util/application';
 import { errorMessage } from '../../core/util/http-error';
-import { STATUS_COLUMNS, StatusMeta, compareByScore } from '../../core/util/score';
+import { STATUS_COLUMNS, StatusMeta, comparePipelineCards } from '../../core/util/score';
 
 export type MinScore = 0 | 50 | 75;
 
@@ -37,7 +37,10 @@ export class PipelineStore {
 
   readonly total = computed(() => this.applications().length);
 
-  /** Spalten gefiltert (Suche, Mindest-Score – nicht analysierte bleiben sichtbar) und sortiert. */
+  /**
+   * Spalten gefiltert (Suche, Mindest-Score – nicht analysierte bleiben sichtbar) und sortiert
+   * (neue Portal-Bewerbungen zuerst, dann nach Score).
+   */
   readonly columns = computed<PipelineColumn[]>(() => {
     const query = this.query().trim().toLowerCase();
     const min = this.minScore();
@@ -50,9 +53,7 @@ export class PipelineStore {
     });
     return STATUS_COLUMNS.map((meta) => ({
       meta,
-      cards: visible
-        .filter((app) => app.status === meta.key)
-        .sort((a, b) => compareByScore(a.overallScore, b.overallScore)),
+      cards: visible.filter((app) => app.status === meta.key).sort(comparePipelineCards),
     }));
   });
 

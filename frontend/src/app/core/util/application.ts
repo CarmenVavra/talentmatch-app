@@ -33,6 +33,7 @@ export function toSummary(detail: ApplicationDetail): ApplicationSummary {
       detail.analysis?.matchingSkills ?? [],
       detail.candidate.profile?.technologies ?? [],
     ),
+    unread: detail.unread,
   };
 }
 

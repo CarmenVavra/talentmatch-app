@@ -126,6 +126,8 @@ export interface ApplicationSummary {
   candidate: CandidateSummary;
   overallScore: number | null;
   skills: string[];
+  /** Neue Portal-Bewerbung, die HR noch nicht geöffnet hat. */
+  unread: boolean;
 }
 
 export interface WorkExperience {
@@ -207,6 +209,7 @@ export interface ApplicationDetail {
   job: JobRef;
   candidate: CandidateDetail;
   analysis: Analysis | null;
+  unread: boolean;
 }
 
 /** RFC-9457 Problem Details, wie vom GlobalExceptionHandler geliefert. */
