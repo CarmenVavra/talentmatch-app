@@ -81,6 +81,12 @@ public class ApplicationController {
         applicationService.updateNotes(id, request.notes());
     }
 
+    @PostMapping("/applications/{id}/seen")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void markSeen(@PathVariable Long id) {
+        applicationService.markSeen(id);
+    }
+
     @PatchMapping("/applications/{id}/questions/{index}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void markQuestion(@PathVariable Long id, @PathVariable int index,

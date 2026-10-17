@@ -83,6 +83,9 @@ public class Application {
     @JoinColumn(name = "applicant_account_id")
     private UserAccount applicantAccount;
 
+    /** Zeitpunkt, zu dem HR die Bewerbung erstmals geöffnet oder bearbeitet hat. */
+    private LocalDateTime seenByHrAt;
+
     protected Application() {
     }
 
@@ -100,6 +103,24 @@ public class Application {
         if (status == ApplicationStatus.NEW) {
             status = ApplicationStatus.MATCHED;
         }
+    }
+
+    /**
+     * Merkt sich, dass HR die Bewerbung gesehen hat (nur beim ersten Mal).
+     */
+    public void markSeenByHr(LocalDateTime now) {
+        if (seenByHrAt == null) {
+            seenByHrAt = now;
+        }
+    }
+
+    /**
+     * Neu = über das Portal eingegangen, von HR noch nicht geöffnet und noch nicht weiterbearbeitet.
+     * Prüft nur den Fremdschlüssel des Kontos, lädt es also nicht nach.
+     */
+    public boolean isUnread() {
+        return applicantAccount != null && seenByHrAt == null
+                && (status == ApplicationStatus.NEW || status == ApplicationStatus.MATCHED);
     }
 
     public Long getId() {

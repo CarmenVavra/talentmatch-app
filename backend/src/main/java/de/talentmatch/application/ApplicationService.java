@@ -1,5 +1,7 @@
 package de.talentmatch.application;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,10 +27,13 @@ public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
     private final JobPositionRepository jobRepository;
+    private final Clock clock;
 
-    public ApplicationService(ApplicationRepository applicationRepository, JobPositionRepository jobRepository) {
+    public ApplicationService(ApplicationRepository applicationRepository, JobPositionRepository jobRepository,
+                              Clock clock) {
         this.applicationRepository = applicationRepository;
         this.jobRepository = jobRepository;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -55,7 +60,18 @@ public class ApplicationService {
     public ApplicationSummaryDto updateStatus(Long id, ApplicationStatus status) {
         Application application = loadWithDetails(id);
         application.setStatus(status);
+        application.markSeenByHr(LocalDateTime.now(clock));
         return ApplicationMapper.toSummary(application);
+    }
+
+    /**
+     * HR hat die Bewerbung geöffnet – die „Neu“-Markierung entfällt.
+     */
+    @Transactional
+    public void markSeen(Long id) {
+        applicationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(APPLICATION, id))
+                .markSeenByHr(LocalDateTime.now(clock));
     }
 
     @Transactional

@@ -41,7 +41,8 @@ public final class ApplicationMapper {
                 new CandidateSummaryDto(candidate.getId(), candidate.getFirstName(), candidate.getLastName(),
                         candidate.getCurrentRole(), candidate.getCurrentCompany(), candidate.getCity()),
                 score,
-                mergeSkills(matching, candidate.skills()));
+                mergeSkills(matching, candidate.skills()),
+                application.isUnread());
     }
 
     public static ApplicationDetailDto toDetail(Application application) {
@@ -60,7 +61,8 @@ public final class ApplicationMapper {
                 new CandidateDetailDto(candidate.getId(), candidate.getFirstName(), candidate.getLastName(),
                         candidate.getEmail(), candidate.getPhone(), candidate.getCity(), candidate.getCurrentRole(),
                         candidate.getCurrentCompany(), candidate.getParsedProfile().orElse(null)),
-                application.getAnalysis().map(ApplicationMapper::toAnalysis).orElse(null));
+                application.getAnalysis().map(ApplicationMapper::toAnalysis).orElse(null),
+                application.isUnread());
     }
 
     private static AnalysisDto toAnalysis(AnalysisResult result) {

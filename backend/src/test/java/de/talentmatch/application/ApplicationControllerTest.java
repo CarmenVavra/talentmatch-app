@@ -103,6 +103,13 @@ class ApplicationControllerTest {
     }
 
     @Test
+    void markSeenReturns204() throws Exception {
+        mockMvc.perform(post("/api/applications/5/seen").with(hrManager()))
+                .andExpect(status().isNoContent());
+        verify(applicationService).markSeen(5L);
+    }
+
+    @Test
     void markQuestionReturns204() throws Exception {
         mockMvc.perform(patch("/api/applications/5/questions/2").with(hrManager())
                         .contentType(MediaType.APPLICATION_JSON)
@@ -144,6 +151,6 @@ class ApplicationControllerTest {
     private static ApplicationSummaryDto summary(ApplicationStatus status) {
         return new ApplicationSummaryDto(5L, 1L, "Senior Java Developer", status, LocalDateTime.of(2026, 10, 6, 9, 0),
                 new CandidateSummaryDto(7L, "Jonas", "Weber", "Java Developer", "Siemens", "Erlangen"), 84,
-                List.of("Java", "Spring Boot"));
+                List.of("Java", "Spring Boot"), false);
     }
 }

@@ -8,6 +8,7 @@ import de.talentmatch.application.ApplicationStatus;
 /**
  * Bewerbung für Kanban-Karten und die Bewerberliste. {@code overallScore} ist null, solange nicht analysiert.
  * {@code skills} enthält zuerst die zur Stelle passenden Skills, danach weitere Technologien.
+ * {@code unread} markiert neue Portal-Bewerbungen, die HR noch nicht geöffnet hat.
  */
 public record ApplicationSummaryDto(
         Long id,
@@ -17,5 +18,6 @@ public record ApplicationSummaryDto(
         LocalDateTime createdAt,
         CandidateSummaryDto candidate,
         Integer overallScore,
-        List<String> skills) {
+        List<String> skills,
+        boolean unread) {
 }

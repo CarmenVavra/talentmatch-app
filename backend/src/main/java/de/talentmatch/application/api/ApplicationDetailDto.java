@@ -21,7 +21,8 @@ public record ApplicationDetailDto(
         String coverLetterFileName,
         JobRefDto job,
         CandidateDetailDto candidate,
-        AnalysisDto analysis) {
+        AnalysisDto analysis,
+        boolean unread) {
 
     public record JobRefDto(
             Long id,

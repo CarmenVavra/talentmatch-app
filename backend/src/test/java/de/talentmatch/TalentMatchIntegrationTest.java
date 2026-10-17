@@ -182,11 +182,24 @@ class TalentMatchIntegrationTest {
                 .andExpect(jsonPath("$[0].status").value("RECEIVED"))
                 .andExpect(jsonPath("$[0].overallScore").doesNotExist());
 
-        // HR sieht die Portal-Bewerbung mit den Stammdaten aus dem Konto
+        // HR sieht die Portal-Bewerbung mit den Stammdaten aus dem Konto – als „neu“, bis sie geöffnet wurde
         String hrToken = login(hrEmail, hrPassword);
-        mockMvc.perform(get("/api/jobs/{id}/applications", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+        String hrList = mockMvc.perform(get("/api/jobs/{id}/applications", jobId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.candidate.lastName == 'Neu')].candidate.firstName").value("Lea"));
+                .andExpect(jsonPath("$[?(@.candidate.lastName == 'Neu')].candidate.firstName").value("Lea"))
+                .andExpect(jsonPath("$[?(@.candidate.lastName == 'Neu')].unread").value(true))
+                .andReturn().getResponse().getContentAsString();
+        List<Integer> leaIds = JsonPath.read(hrList, "$[?(@.candidate.lastName == 'Neu')].id");
+        mockMvc.perform(post("/api/applications/{id}/seen", leaIds.getFirst())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/applications/{id}", leaIds.getFirst())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(jsonPath("$.unread").value(false));
+        mockMvc.perform(post("/api/applications/{id}/seen", leaIds.getFirst())
+                        .header(HttpHeaders.AUTHORIZATION, bearer(token)))
+                .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/applicant/jobs").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
                 .andExpect(status().isForbidden());
     }
