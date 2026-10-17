@@ -12,14 +12,20 @@ export const authGuard: CanActivateFn = (_route, state) => {
   return inject(Router).createUrlTree(['/login'], { queryParams: { returnUrl: state.url } });
 };
 
-/** Alle Recruiting-Views sind der Rolle HR-Manager vorbehalten. */
+/** Die Recruiting-Views sind der Rolle HR-Manager vorbehalten; Bewerber:innen landen im Portal. */
 export const hrManagerGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
-  return auth.hasRole('HR_MANAGER') ? true : inject(Router).createUrlTree(['/forbidden']);
+  return auth.hasRole('HR_MANAGER') ? true : inject(Router).createUrlTree(['/portal']);
 };
 
-/** Login-Seite nur ohne aktive Sitzung. */
+/** Das Bewerber-Portal ist der Rolle Bewerber:in vorbehalten; HR landet in der Stellenübersicht. */
+export const applicantGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  return auth.hasRole('APPLICANT') ? true : inject(Router).createUrlTree(['/jobs']);
+};
+
+/** Login und Registrierung nur ohne aktive Sitzung. */
 export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
-  return auth.isAuthenticated() ? inject(Router).createUrlTree(['/jobs']) : true;
+  return auth.isAuthenticated() ? inject(Router).parseUrl(auth.homeUrl()) : true;
 };

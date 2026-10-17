@@ -56,12 +56,18 @@ describe('layout', () => {
       expect(root.querySelector('.avatar')?.textContent).toContain('KV');
     });
 
-    it('hides the recruiting navigation for applicants and offers the account menu', async () => {
+    it('shows the portal navigation for applicants and offers the account menu', async () => {
       signIn('APPLICANT');
       const fixture = TestBed.createComponent(AppHeaderComponent);
       await fixture.whenStable();
       const root = fixture.nativeElement as HTMLElement;
-      expect(root.querySelectorAll('.nav-link').length).toBe(0);
+      const links = Array.from(root.querySelectorAll('.nav-link')) as HTMLAnchorElement[];
+      expect(links.map((l) => l.textContent?.trim())).toEqual([
+        'Offene Stellen',
+        'Meine Bewerbungen',
+      ]);
+      expect(links[1].getAttribute('href')).toBe('/portal/applications');
+      expect(root.querySelector('.brand')?.getAttribute('href')).toBe('/portal/jobs');
       expect(root.querySelector('.role-chip')?.textContent).toContain('Bewerber:in');
 
       (root.querySelector('.account-button') as HTMLButtonElement).click();

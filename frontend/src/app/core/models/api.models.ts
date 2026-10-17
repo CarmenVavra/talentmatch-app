@@ -24,6 +24,41 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface RegisterRequest {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+}
+
+/** Für Bewerber:innen sichtbarer Status (interne Schritte wie „KI-analysiert“ sind ausgeblendet). */
+export type ApplicantStatus = 'RECEIVED' | 'INTERVIEW' | 'OFFER' | 'REJECTED';
+
+/** Stelle im Bewerber-Portal – ohne Zähler und Scores. */
+export interface OpenJob {
+  id: number;
+  title: string;
+  department: string;
+  experienceLevel: string;
+  location: string;
+  description: string | null;
+  requiredSkills: string[];
+  createdDate: string;
+  applied: boolean;
+}
+
+/** Eigene Bewerbung im Portal – nur Status, kein Match-Score. */
+export interface MyApplication {
+  id: number;
+  jobId: number;
+  jobTitle: string;
+  department: string;
+  location: string;
+  status: ApplicantStatus;
+  submittedAt: string;
+  resumeFileName: string | null;
+}
+
 export interface ChangePasswordRequest {
   currentPassword: string;
   newPassword: string;

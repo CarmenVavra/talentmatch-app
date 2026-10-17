@@ -16,7 +16,7 @@ import { JobStore } from '../core/state/job.store';
 import { ICONS } from '../shared/icons';
 import { LogoComponent } from '../shared/logo.component';
 
-type NavKey = 'jobs' | 'pipeline' | 'candidates';
+type NavKey = 'jobs' | 'pipeline' | 'candidates' | 'portal-jobs' | 'portal-applications';
 
 interface NavItem {
   key: NavKey;
@@ -53,6 +53,12 @@ export class AppHeaderComponent {
 
   protected readonly active = computed<NavKey | null>(() => {
     const url = this.url();
+    if (url.startsWith('/portal/jobs')) {
+      return 'portal-jobs';
+    }
+    if (url.startsWith('/portal/applications')) {
+      return 'portal-applications';
+    }
     if (/^\/jobs\/\d+\/pipeline/.test(url)) {
       return 'pipeline';
     }
@@ -66,6 +72,12 @@ export class AppHeaderComponent {
   });
 
   protected readonly navItems = computed<NavItem[]>(() => {
+    if (!this.auth.isHrManager()) {
+      return [
+        { key: 'portal-jobs', label: 'Offene Stellen', link: ['/portal/jobs'] },
+        { key: 'portal-applications', label: 'Meine Bewerbungen', link: ['/portal/applications'] },
+      ];
+    }
     const pipelineJobId = this.jobStore.pipelineJobId();
     return [
       { key: 'jobs', label: 'Stellen', link: ['/jobs'] },

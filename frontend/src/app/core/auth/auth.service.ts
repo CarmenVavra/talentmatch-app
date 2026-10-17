@@ -3,7 +3,13 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 
-import { ChangePasswordRequest, LoginResponse, Role, User } from '../models/api.models';
+import {
+  ChangePasswordRequest,
+  LoginResponse,
+  RegisterRequest,
+  Role,
+  User,
+} from '../models/api.models';
 
 const STORAGE_KEY = 'talentmatch.session';
 
@@ -32,18 +38,30 @@ export class AuthService {
     return user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase() : '';
   });
 
+  /** Startseite je Rolle: HR → Stellenübersicht, Bewerber:in → Portal. */
+  readonly homeUrl = computed(() => (this.isHrManager() ? '/jobs' : '/portal/jobs'));
+
   login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>('/api/auth/login', { email, password }).pipe(
-      tap((response) => {
-        const session: StoredSession = {
-          token: response.token,
-          expiresAt: response.expiresAt,
-          user: response.user,
-        };
-        this.persist(session);
-        this.session.set(session);
-      }),
-    );
+    return this.http
+      .post<LoginResponse>('/api/auth/login', { email, password })
+      .pipe(tap((response) => this.startSession(response)));
+  }
+
+  /** Registriert ein Bewerber-Konto und meldet es direkt an. */
+  register(request: RegisterRequest): Observable<LoginResponse> {
+    return this.http
+      .post<LoginResponse>('/api/auth/register', request)
+      .pipe(tap((response) => this.startSession(response)));
+  }
+
+  private startSession(response: LoginResponse): void {
+    const session: StoredSession = {
+      token: response.token,
+      expiresAt: response.expiresAt,
+      user: response.user,
+    };
+    this.persist(session);
+    this.session.set(session);
   }
 
   changePassword(request: ChangePasswordRequest): Observable<void> {

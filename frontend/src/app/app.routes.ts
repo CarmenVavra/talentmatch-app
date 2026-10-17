@@ -1,6 +1,8 @@
+import { inject } from '@angular/core';
 import { Routes } from '@angular/router';
 
-import { authGuard, guestGuard, hrManagerGuard } from './core/auth/auth.guards';
+import { applicantGuard, authGuard, guestGuard, hrManagerGuard } from './core/auth/auth.guards';
+import { AuthService } from './core/auth/auth.service';
 import { ShellComponent } from './layout/shell.component';
 
 export const routes: Routes = [
@@ -11,11 +13,19 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent),
   },
   {
+    path: 'register',
+    canActivate: [guestGuard],
+    title: 'Registrieren · TalentMatch',
+    loadComponent: () =>
+      import('./features/auth/register.component').then((m) => m.RegisterComponent),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'jobs' },
+      // Startseite je Rolle
+      { path: '', pathMatch: 'full', redirectTo: () => inject(AuthService).homeUrl() },
       {
         path: 'account/password',
         title: 'Passwort ändern · TalentMatch',
@@ -25,10 +35,25 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'forbidden',
-        title: 'Kein Zugriff · TalentMatch',
-        loadComponent: () =>
-          import('./features/auth/forbidden.component').then((m) => m.ForbiddenComponent),
+        path: 'portal',
+        canActivateChild: [applicantGuard],
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'jobs' },
+          {
+            path: 'jobs',
+            title: 'Offene Stellen · TalentMatch',
+            loadComponent: () =>
+              import('./features/portal/portal-jobs.component').then((m) => m.PortalJobsComponent),
+          },
+          {
+            path: 'applications',
+            title: 'Meine Bewerbungen · TalentMatch',
+            loadComponent: () =>
+              import('./features/portal/my-applications.component').then(
+                (m) => m.MyApplicationsComponent,
+              ),
+          },
+        ],
       },
       {
         path: '',
@@ -76,5 +101,5 @@ export const routes: Routes = [
       },
     ],
   },
-  { path: '**', redirectTo: 'jobs' },
+  { path: '**', redirectTo: '' },
 ];

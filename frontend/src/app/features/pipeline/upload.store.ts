@@ -6,10 +6,9 @@ import { Observable, delay, filter, map, switchMap, tap } from 'rxjs';
 import { ApplicationApiService } from '../../core/api/application-api.service';
 import { ApplicationDetail, ApplicationSummary } from '../../core/models/api.models';
 import { toSummary } from '../../core/util/application';
+import { validateFile } from '../../core/util/file';
 import { errorMessage } from '../../core/util/http-error';
 import { PipelineStore } from './pipeline.store';
-
-export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 export type UploadStage = 'uploading' | 'uploaded' | 'extracted' | 'analyzing' | 'done' | 'error';
 
@@ -147,16 +146,4 @@ export class UploadStore {
   private update(itemId: number, changes: Partial<UploadItem>): void {
     this.uploads.update((list) => list.map((u) => (u.id === itemId ? { ...u, ...changes } : u)));
   }
-}
-
-/** Clientseitige Prüfung (der Server prüft zusätzlich Inhalt und Größe). */
-export function validateFile(file: File): string | null {
-  const isPdf = file.name.toLowerCase().endsWith('.pdf');
-  if (!isPdf) {
-    return 'Falscher Dateityp – nur PDF-Dateien sind erlaubt.';
-  }
-  if (file.size > MAX_FILE_BYTES) {
-    return 'Die Datei ist größer als 10 MB.';
-  }
-  return null;
 }

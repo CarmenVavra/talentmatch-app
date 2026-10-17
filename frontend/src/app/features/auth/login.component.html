@@ -7,7 +7,7 @@
     <div>
       <div class="kicker">Anmelden</div>
       <h2 class="title">Willkommen zurück</h2>
-      <p class="muted lead">KI-gestütztes Recruiting für HR-Manager:innen.</p>
+      <p class="muted lead">Für HR-Manager:innen und Bewerber:innen.</p>
     </div>
 
     @if (error(); as message) {
@@ -55,5 +55,9 @@
         <lucide-icon [img]="icons.arrowRight" [size]="16" aria-hidden="true" />
       </button>
     </form>
+
+    <p class="switch">
+      Noch kein Konto? <a routerLink="/register">Als Bewerber:in registrieren</a>
+    </p>
   </div>
 </div>

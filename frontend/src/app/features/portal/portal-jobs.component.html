@@ -1,0 +1,89 @@
+<div class="page">
+  <div class="title-row">
+    <div>
+      <div class="kicker title-kicker">Karriere</div>
+      <h1 class="page-title">Offene Stellen</h1>
+    </div>
+    <a class="btn btn-secondary btn-lg" routerLink="/portal/applications">Meine Bewerbungen</a>
+  </div>
+
+  <div class="toolbar">
+    <div class="search toolbar-search">
+      <lucide-icon [img]="icons.search" [size]="16" aria-hidden="true" />
+      <input
+        #search
+        class="input"
+        type="search"
+        placeholder="Stelle, Ort oder Skill suchen"
+        aria-label="Stellen durchsuchen"
+        [value]="query()"
+        (input)="query.set(search.value)"
+      />
+    </div>
+    <app-segmented-control
+      ariaLabel="Abteilung"
+      [options]="departmentOptions()"
+      [(value)]="department"
+    />
+  </div>
+
+  @if (store.error(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+      <button type="button" class="btn btn-ghost" (click)="store.loadJobs()">Erneut laden</button>
+    </div>
+  }
+
+  @if (store.jobsLoading() && !store.jobsLoaded()) {
+    <div class="tiles">
+      @for (s of skeletons; track s) {
+        <div class="tile"><span class="skeleton sk-block"></span></div>
+      }
+    </div>
+  } @else if (jobs().length === 0 && store.jobsLoaded()) {
+    <div class="empty">Keine Stellen gefunden. Suche oder Filter anpassen.</div>
+  } @else {
+    <div class="tiles">
+      @for (job of jobs(); track job.id) {
+        <article class="tile" [attr.aria-label]="job.title">
+          <div class="tile-title">
+            <span class="kicker">{{ job.department }}</span>
+            <h2 class="job-title">{{ job.title }}</h2>
+            <span class="meta">{{ job.experienceLevel }} · {{ job.location }}</span>
+          </div>
+          @if (job.description) {
+            <p class="description">{{ job.description }}</p>
+          }
+          <div class="skills">
+            @for (skill of job.requiredSkills; track skill) {
+              <span class="tag">{{ skill }}</span>
+            }
+          </div>
+          <div class="tile-foot">
+            <span class="since">ausgeschrieben seit {{ job.createdDate | deDate }}</span>
+            @if (job.applied) {
+              <span class="applied">
+                <lucide-icon [img]="icons.check" [size]="15" aria-hidden="true" />
+                Beworben
+              </span>
+            } @else {
+              <button
+                type="button"
+                class="btn btn-primary btn-wide apply"
+                (click)="applyingTo.set(job)"
+              >
+                Jetzt bewerben
+                <lucide-icon [img]="icons.arrowRight" [size]="16" aria-hidden="true" />
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </div>
+  }
+</div>
+
+@if (applyingTo(); as job) {
+  <app-apply-dialog [job]="job" (closed)="applyingTo.set(null)" />
+}

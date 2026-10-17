@@ -1,21 +1,19 @@
 <header class="header">
   <div class="header-inner">
-    <a class="brand" routerLink="/jobs" aria-label="TalentMatch – zur Stellenübersicht">
+    <a class="brand" [routerLink]="auth.homeUrl()" aria-label="TalentMatch – zur Startseite">
       <app-logo />
       <span class="wordmark">TalentMatch</span>
     </a>
 
     <nav class="nav" aria-label="Hauptnavigation">
-      @if (auth.isHrManager()) {
-        @for (item of navItems(); track item.key) {
-          <a
-            class="nav-link"
-            [class.active]="active() === item.key"
-            [attr.aria-current]="active() === item.key ? 'page' : null"
-            [routerLink]="item.link"
-            >{{ item.label }}</a
-          >
-        }
+      @for (item of navItems(); track item.key) {
+        <a
+          class="nav-link"
+          [class.active]="active() === item.key"
+          [attr.aria-current]="active() === item.key ? 'page' : null"
+          [routerLink]="item.link"
+          >{{ item.label }}</a
+        >
       }
     </nav>
 

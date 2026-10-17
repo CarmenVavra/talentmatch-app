@@ -1,0 +1,141 @@
+.dialog {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--tm-surface);
+  box-shadow: var(--shadow-lg);
+  border-top: 4px solid var(--tm-blue);
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 20px 24px 12px;
+}
+
+.dialog-title {
+  margin: 4px 0 0;
+}
+
+.dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 24px 20px;
+}
+
+.intro {
+  margin: 0;
+  font-size: 14px;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 32px 24px;
+  border: 2px dashed var(--tm-lightblue);
+  background: var(--tm-blue-tint-3);
+  cursor: pointer;
+
+  &.hot {
+    border-color: var(--tm-blue);
+    background: var(--tm-blue-tint-2);
+  }
+}
+
+.zone-icon {
+  color: var(--tm-blue);
+}
+
+.zone-title {
+  font-weight: 800;
+  font-size: 17px;
+}
+
+.zone-hint {
+  font-size: 13px;
+  color: var(--tm-gray);
+}
+
+.file {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-top: 2px solid var(--tm-line-strong);
+  border-bottom: 1px solid var(--tm-line-fine);
+  font-size: 13px;
+}
+
+.file-icon {
+  color: var(--tm-gray);
+}
+
+.file-name {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  color: var(--tm-gray);
+}
+
+.alert lucide-icon {
+  color: var(--tm-red-bar);
+  margin-top: 2px;
+}
+
+.success {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  background: var(--tm-green-surface);
+  border-left: 4px solid var(--tm-green-bar);
+  font-size: 14px;
+
+  lucide-icon {
+    color: var(--tm-green-bar);
+    margin-top: 2px;
+  }
+
+  p {
+    margin: 4px 0 0;
+  }
+}
+
+.dialog-foot {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.foot-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--tm-gray);
+  max-width: 30ch;
+}
+
+.send {
+  min-width: 200px;
+}

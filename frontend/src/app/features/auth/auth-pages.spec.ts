@@ -7,8 +7,8 @@ import { Router, provideRouter } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { makeUser } from '../../testing/test-data';
 import { ChangePasswordComponent, passwordsMatch } from './change-password.component';
-import { ForbiddenComponent } from './forbidden.component';
 import { LoginComponent } from './login.component';
+import { RegisterComponent } from './register.component';
 
 function setValue(root: HTMLElement, selector: string, value: string): void {
   const input = root.querySelector(selector) as HTMLInputElement;
@@ -64,6 +64,23 @@ describe('auth pages', () => {
       expect(navigate).toHaveBeenCalledWith('/jobs');
     });
 
+    it('sends applicants to the portal', async () => {
+      const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+      const fixture = TestBed.createComponent(LoginComponent);
+      await fixture.whenStable();
+      setValue(fixture.nativeElement, '#email', 'bewerber@talentmatch.de');
+      setValue(fixture.nativeElement, '#password', 'secret');
+      (fixture.nativeElement.querySelector('form') as HTMLFormElement).dispatchEvent(
+        new Event('submit'),
+      );
+      http.expectOne('/api/auth/login').flush({
+        token: 't',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        user: makeUser({ role: 'APPLICANT' }),
+      });
+      expect(navigate).toHaveBeenCalledWith('/portal/jobs');
+    });
+
     it('shows the server error message', async () => {
       const fixture = TestBed.createComponent(LoginComponent);
       await fixture.whenStable();
@@ -117,15 +134,58 @@ describe('auth pages', () => {
     });
   });
 
-  describe('ForbiddenComponent', () => {
-    it('explains the missing permission and offers logout', async () => {
-      const auth = TestBed.inject(AuthService);
-      const logout = spyOn(auth, 'logout');
-      const fixture = TestBed.createComponent(ForbiddenComponent);
+  describe('RegisterComponent', () => {
+    async function fillAndSubmit(confirm = 'geheim-123') {
+      const fixture = TestBed.createComponent(RegisterComponent);
       await fixture.whenStable();
-      expect(fixture.nativeElement.textContent).toContain('HR-Manager:innen vorbehalten');
-      (fixture.nativeElement.querySelector('button') as HTMLButtonElement).click();
-      expect(logout).toHaveBeenCalled();
+      const root = fixture.nativeElement as HTMLElement;
+      setValue(root, '#firstName', 'Max');
+      setValue(root, '#lastName', 'Mustermann');
+      setValue(root, '#email', 'max@example.org');
+      setValue(root, '#newPassword', 'geheim-123');
+      setValue(root, '#confirmPassword', confirm);
+      (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+      await fixture.whenStable();
+      return fixture;
+    }
+
+    it('registers an applicant and opens the portal', async () => {
+      const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
+      await fillAndSubmit();
+      const req = http.expectOne('/api/auth/register');
+      expect(req.request.body).toEqual({
+        firstName: 'Max',
+        lastName: 'Mustermann',
+        email: 'max@example.org',
+        password: 'geheim-123',
+      });
+      req.flush({
+        token: 't',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        user: makeUser({ role: 'APPLICANT' }),
+      });
+      expect(TestBed.inject(AuthService).hasRole('APPLICANT')).toBeTrue();
+      expect(navigate).toHaveBeenCalledWith('/portal/jobs');
+    });
+
+    it('does not submit when the passwords differ', async () => {
+      const fixture = await fillAndSubmit('anders-123');
+      http.expectNone('/api/auth/register');
+      expect(fixture.nativeElement.textContent).toContain('Die Passwörter stimmen nicht überein.');
+    });
+
+    it('shows a conflict for existing accounts', async () => {
+      const fixture = await fillAndSubmit();
+      http
+        .expectOne('/api/auth/register')
+        .flush(
+          { detail: 'Für diese E-Mail-Adresse existiert bereits ein Konto.' },
+          { status: 409, statusText: 'Conflict' },
+        );
+      await fixture.whenStable();
+      expect(fixture.nativeElement.querySelector('.alert').textContent).toContain(
+        'existiert bereits ein Konto',
+      );
     });
   });
 });

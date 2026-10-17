@@ -4,7 +4,8 @@ import { TestBed } from '@angular/core/testing';
 
 import { makeDetail, makeSummary } from '../../testing/test-data';
 import { PipelineStore } from './pipeline.store';
-import { MAX_FILE_BYTES, UploadStore, validateFile } from './upload.store';
+import { MAX_FILE_BYTES, validateFile } from '../../core/util/file';
+import { UploadStore } from './upload.store';
 
 function pdf(name = 'Lebenslauf_Maria_Schulz.pdf', size = 1000): File {
   return new File([new Uint8Array(size)], name, { type: 'application/pdf' });

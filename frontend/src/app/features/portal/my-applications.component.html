@@ -1,0 +1,71 @@
+<div class="page">
+  <div class="title-row">
+    <div>
+      <div class="kicker title-kicker">Mein Bereich</div>
+      <h1 class="page-title">Meine Bewerbungen</h1>
+    </div>
+    <a class="btn btn-primary btn-lg btn-wide" routerLink="/portal/jobs">
+      Offene Stellen ansehen
+      <lucide-icon [img]="icons.arrowRight" [size]="16" aria-hidden="true" />
+    </a>
+  </div>
+
+  @if (store.error(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+      <button type="button" class="btn btn-ghost" (click)="store.loadApplications()">
+        Erneut laden
+      </button>
+    </div>
+  }
+
+  @if (store.applicationsLoading() && !store.applicationsLoaded()) {
+    <div class="list">
+      @for (s of skeletons; track s) {
+        <div class="skeleton sk-row"></div>
+      }
+    </div>
+  } @else if (store.applications().length === 0 && store.applicationsLoaded()) {
+    <div class="empty">
+      Sie haben sich noch auf keine Stelle beworben.
+      <a routerLink="/portal/jobs">Jetzt offene Stellen ansehen</a>
+    </div>
+  } @else {
+    <div class="list">
+      @for (application of store.applications(); track application.id) {
+        @let m = meta(application.status);
+        <article class="application">
+          <div class="application-main">
+            <div class="application-head">
+              <div>
+                <span class="kicker">{{ application.department }}</span>
+                <h2 class="job-title">{{ application.jobTitle }}</h2>
+                <span class="meta"
+                  >{{ application.location }} · eingereicht am
+                  {{ application.submittedAt | deDate }}</span
+                >
+              </div>
+              <span class="status-tag" [style.background]="m.tagBg" [style.color]="m.tagFg">{{
+                m.label
+              }}</span>
+            </div>
+            <p class="message">{{ m.message }}</p>
+          </div>
+          <ol class="steps" aria-label="Fortschritt der Bewerbung">
+            @for (step of steps(application.status); track $index) {
+              <li
+                class="step"
+                [class.done]="step.state === 'done'"
+                [class.current]="step.state === 'current'"
+              >
+                <span class="step-bar"></span>
+                <span class="step-label">{{ step.label }}</span>
+              </li>
+            }
+          </ol>
+        </article>
+      }
+    </div>
+  }
+</div>

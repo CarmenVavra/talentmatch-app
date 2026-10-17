@@ -1,0 +1,125 @@
+<div
+  class="dialog-backdrop"
+  tabindex="-1"
+  (click)="onBackdropClick($event)"
+  (keydown.escape)="close()"
+>
+  <div
+    #dialog
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="apply-title"
+    tabindex="-1"
+  >
+    <div class="dialog-head">
+      <div>
+        <div class="kicker">{{ job().title }}</div>
+        <h3 id="apply-title" class="dialog-title">Jetzt bewerben</h3>
+      </div>
+      <button
+        type="button"
+        class="btn btn-icon btn-secondary"
+        aria-label="Dialog schließen"
+        [disabled]="submitting()"
+        (click)="close()"
+      >
+        <lucide-icon [img]="icons.x" [size]="16" aria-hidden="true" />
+      </button>
+    </div>
+
+    <div class="dialog-body">
+      @if (submitted(); as application) {
+        <div class="success" role="status">
+          <lucide-icon [img]="icons.check" [size]="18" aria-hidden="true" />
+          <div>
+            <strong>Vielen Dank für Ihre Bewerbung!</strong>
+            <p>
+              Ihre Bewerbung als {{ application.jobTitle }} ist eingegangen. Den Status sehen Sie
+              jederzeit unter „Meine Bewerbungen“.
+            </p>
+          </div>
+        </div>
+        <div class="dialog-foot">
+          <span></span>
+          <div class="foot-actions">
+            <button type="button" class="btn btn-secondary" (click)="close()">Schließen</button>
+            <a class="btn btn-primary" routerLink="/portal/applications" (click)="close()"
+              >Zu meinen Bewerbungen</a
+            >
+          </div>
+        </div>
+      } @else {
+        <p class="intro muted">
+          {{ job().experienceLevel }} · {{ job().location }} · Laden Sie Ihren Lebenslauf als PDF
+          hoch.
+        </p>
+        <div
+          class="dropzone"
+          role="button"
+          tabindex="0"
+          [class.hot]="zoneHot()"
+          (click)="pickFile()"
+          (keydown.enter)="pickFile()"
+          (keydown.space)="$event.preventDefault(); pickFile()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="zoneHot.set(false)"
+          (drop)="onDrop($event)"
+        >
+          <lucide-icon
+            class="zone-icon"
+            [img]="icons.upload"
+            [size]="28"
+            [strokeWidth]="1.8"
+            aria-hidden="true"
+          />
+          <div class="zone-title">Lebenslauf hierher ziehen</div>
+          <div class="zone-hint">oder klicken zum Auswählen · PDF, max. 10 MB</div>
+          <input
+            #fileInput
+            type="file"
+            accept=".pdf,application/pdf"
+            class="visually-hidden"
+            tabindex="-1"
+            aria-label="Lebenslauf auswählen"
+            (change)="onFileSelected(fileInput)"
+          />
+        </div>
+
+        @if (file(); as selected) {
+          <div class="file">
+            <lucide-icon
+              class="file-icon"
+              [img]="icons.fileText"
+              [size]="20"
+              [strokeWidth]="1.8"
+              aria-hidden="true"
+            />
+            <span class="file-name" [title]="selected.name">{{ selected.name }}</span>
+            <span class="file-size">{{ size(selected) }}</span>
+          </div>
+        }
+
+        @if (error(); as message) {
+          <div class="alert" role="alert">
+            <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+            <span>{{ message }}</span>
+          </div>
+        }
+
+        <div class="dialog-foot">
+          <span class="hint">Ihre Daten werden nur für dieses Bewerbungsverfahren verwendet.</span>
+          <button
+            type="button"
+            class="btn btn-primary btn-wide send"
+            [disabled]="!file() || submitting()"
+            (click)="submit()"
+          >
+            {{ submitting() ? 'Wird gesendet …' : 'Bewerbung absenden' }}
+            <lucide-icon [img]="icons.arrowRight" [size]="16" aria-hidden="true" />
+          </button>
+        </div>
+      }
+    </div>
+  </div>
+</div>

@@ -10,7 +10,7 @@ import {
 } from '@angular/router';
 
 import { makeUser } from '../../testing/test-data';
-import { authGuard, guestGuard, hrManagerGuard } from './auth.guards';
+import { applicantGuard, authGuard, guestGuard, hrManagerGuard } from './auth.guards';
 import { authInterceptor } from './auth.interceptor';
 import { AuthService } from './auth.service';
 
@@ -102,19 +102,53 @@ describe('AuthService, interceptor and guards', () => {
     expect(router.serializeUrl(result as UrlTree)).toBe('/login?returnUrl=%2Fjobs');
   });
 
-  it('hrManagerGuard only lets HR managers pass', () => {
+  it('hrManagerGuard sends applicants to the portal', () => {
     login('APPLICANT');
     const result = runGuard(hrManagerGuard);
-    expect(router.serializeUrl(result as UrlTree)).toBe('/forbidden');
+    expect(router.serializeUrl(result as UrlTree)).toBe('/portal');
 
     auth.logout(false);
     login('HR_MANAGER');
     expect(runGuard(hrManagerGuard)).toBeTrue();
   });
 
-  it('guestGuard redirects signed-in users away from login', () => {
+  it('applicantGuard sends HR managers to the job overview', () => {
+    login('HR_MANAGER');
+    expect(router.serializeUrl(runGuard(applicantGuard) as UrlTree)).toBe('/jobs');
+
+    auth.logout(false);
+    login('APPLICANT');
+    expect(runGuard(applicantGuard)).toBeTrue();
+  });
+
+  it('guestGuard redirects signed-in users to their home page', () => {
     expect(runGuard(guestGuard)).toBeTrue();
-    login();
+    login('APPLICANT');
+    expect(auth.homeUrl()).toBe('/portal/jobs');
+    expect(router.serializeUrl(runGuard(guestGuard) as UrlTree)).toBe('/portal/jobs');
+    auth.logout(false);
+    login('HR_MANAGER');
     expect(router.serializeUrl(runGuard(guestGuard) as UrlTree)).toBe('/jobs');
+  });
+
+  it('registers an applicant and starts the session', () => {
+    auth
+      .register({
+        firstName: 'Max',
+        lastName: 'M',
+        email: 'max@example.org',
+        password: 'geheim-123',
+      })
+      .subscribe();
+    const req = http.expectOne('/api/auth/register');
+    expect(req.request.body.email).toBe('max@example.org');
+    req.flush({
+      token: 'reg-token',
+      expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      user: makeUser({ role: 'APPLICANT', firstName: 'Max', lastName: 'M' }),
+    });
+    expect(auth.isAuthenticated()).toBeTrue();
+    expect(auth.hasRole('APPLICANT')).toBeTrue();
+    expect(auth.token()).toBe('reg-token');
   });
 });
