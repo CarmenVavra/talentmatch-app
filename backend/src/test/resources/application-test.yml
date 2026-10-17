@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:talentmatch-test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  ai:
+    openai:
+      api-key: not-configured
+
+talentmatch:
+  seed:
+    enabled: true
+    hr-password: test-hr-password
+    applicant-password: test-applicant-password

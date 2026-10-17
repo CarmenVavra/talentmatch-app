@@ -1,0 +1,9 @@
+# Aktivieren mit: --spring.profiles.active=postgres (z. B. in docker-compose.yml)
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/talentmatch}
+    username: ${DB_USERNAME:talentmatch}
+    password: ${DB_PASSWORD:talentmatch}
+  h2:
+    console:
+      enabled: false
