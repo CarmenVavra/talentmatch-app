@@ -55,7 +55,7 @@
             <span class="meta">{{ job.experienceLevel }} · {{ job.location }}</span>
           </div>
           @if (job.description) {
-            <p class="description">{{ job.description }}</p>
+            <p class="description"><app-rich-text [text]="job.description" /></p>
           }
           <a
             class="details-link"

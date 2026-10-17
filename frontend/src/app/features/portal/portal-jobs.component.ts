@@ -5,6 +5,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { OpenJob } from '../../core/models/api.models';
 import { ICONS } from '../../shared/icons';
 import { DeDatePipe } from '../../shared/pipes';
+import { RichTextComponent } from '../../shared/rich-text.component';
 import { SegmentOption, SegmentedControlComponent } from '../../shared/segmented-control.component';
 import { ApplyDialogComponent } from './apply-dialog.component';
 import { PortalStore } from './portal.store';
@@ -32,6 +33,7 @@ export function filterOpenJobs(
     SegmentedControlComponent,
     DeDatePipe,
     ApplyDialogComponent,
+    RichTextComponent,
   ],
   templateUrl: './portal-jobs.component.html',
   styleUrl: './portal.scss',

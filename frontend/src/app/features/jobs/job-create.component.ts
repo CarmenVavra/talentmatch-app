@@ -2,6 +2,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  ElementRef,
+  Injector,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -10,7 +13,7 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
   NonNullableFormBuilder,
@@ -24,12 +27,26 @@ import { LucideAngularModule } from 'lucide-angular';
 import { CreateJobRequest, Job } from '../../core/models/api.models';
 import { JobStore } from '../../core/state/job.store';
 import { ToastService } from '../../core/state/toast.service';
+import { formatCount } from '../../core/util/format';
 import { errorMessage, fieldErrors } from '../../core/util/http-error';
+import { wrapBold } from '../../core/util/rich-text';
 import { ICONS } from '../../shared/icons';
+import { RichTextComponent } from '../../shared/rich-text.component';
 import { SegmentOption, SegmentedControlComponent } from '../../shared/segmented-control.component';
 import { DEPARTMENTS } from './job-filters';
 
 const LEVELS = ['Junior', 'Mid', 'Senior', 'Lead'] as const;
+
+/** Höchstlänge der Beschreibung (wie im Backend). */
+export const MAX_DESCRIPTION_LENGTH = 20000;
+
+/** Reihenfolge der Felder im Formular – für den Sprung zum ersten Fehler. */
+const FIELD_ORDER = [
+  ['title', '#title'],
+  ['location', '#location'],
+  ['requiredSkills', '#skillInput'],
+  ['description', '#description'],
+] as const;
 
 function atLeastOneSkill(control: AbstractControl<string[]>): ValidationErrors | null {
   return control.value.length > 0 ? null : { required: true };
@@ -42,7 +59,13 @@ function optionalId(value: string | undefined): number | undefined {
 /** Stelle anlegen ({@code /jobs/new}) oder bearbeiten ({@code /jobs/:jobId/edit}). */
 @Component({
   selector: 'app-job-create',
-  imports: [ReactiveFormsModule, RouterLink, LucideAngularModule, SegmentedControlComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    LucideAngularModule,
+    SegmentedControlComponent,
+    RichTextComponent,
+  ],
   templateUrl: './job-create.component.html',
   styleUrl: './job-create.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,7 +75,11 @@ export class JobCreateComponent {
   private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
   protected readonly icons = ICONS;
+  protected readonly maxDescription = MAX_DESCRIPTION_LENGTH;
+  protected readonly formatCount = formatCount;
 
   /** Routen-Parameter :jobId – nur im Bearbeiten-Modus gesetzt. */
   readonly jobId = input<number | undefined, string | undefined>(undefined, {
@@ -68,6 +95,11 @@ export class JobCreateComponent {
   protected readonly serverErrors = signal<Record<string, string>>({});
   protected readonly department = signal<string>(DEPARTMENTS[0]);
   protected readonly level = signal<string>('Mid');
+  protected readonly descriptionView = signal<'edit' | 'preview'>('edit');
+  protected readonly descriptionViewOptions: SegmentOption<'edit' | 'preview'>[] = [
+    { value: 'edit', label: 'Bearbeiten' },
+    { value: 'preview', label: 'Vorschau' },
+  ];
 
   /** Feste Abteilungen plus ggf. die abweichende Abteilung einer bestehenden Stelle. */
   protected readonly departmentOptions = computed<SegmentOption<string>[]>(() => {
@@ -87,10 +119,18 @@ export class JobCreateComponent {
   protected readonly form = this.fb.group({
     title: ['', [Validators.required, Validators.maxLength(200)]],
     location: ['', Validators.required],
-    description: ['', Validators.maxLength(4000)],
+    description: ['', Validators.maxLength(MAX_DESCRIPTION_LENGTH)],
     skillInput: [''],
     requiredSkills: this.fb.control<string[]>([], atLeastOneSkill),
   });
+
+  private readonly descriptionValue = toSignal(this.form.controls.description.valueChanges, {
+    initialValue: '',
+  });
+  protected readonly descriptionLength = computed(() => this.descriptionValue().length);
+  protected readonly descriptionTooLong = computed(
+    () => this.descriptionLength() > MAX_DESCRIPTION_LENGTH,
+  );
 
   constructor() {
     effect(() => {
@@ -99,6 +139,16 @@ export class JobCreateComponent {
         untracked(() => this.loadJob(id));
       }
     });
+  }
+
+  /** Umschließt die Auswahl in der Beschreibung mit `**` und behält die Auswahl bei. */
+  protected makeBold(textarea: HTMLTextAreaElement): void {
+    const control = this.form.controls.description;
+    const result = wrapBold(control.value, textarea.selectionStart, textarea.selectionEnd);
+    control.setValue(result.text);
+    control.markAsDirty();
+    textarea.focus();
+    textarea.setSelectionRange(result.start, result.end);
   }
 
   protected addSkill(): void {
@@ -145,6 +195,7 @@ export class JobCreateComponent {
     this.addSkill();
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.focusFirstInvalidField();
       return;
     }
     this.submitting.set(true);
@@ -179,8 +230,35 @@ export class JobCreateComponent {
               : 'Die Änderungen konnten nicht gespeichert werden.',
           ),
         );
+        // Die Meldung steht oben – beim Klick auf „Speichern“ unten wäre sie sonst nicht zu sehen.
+        afterNextRender(
+          () =>
+            this.host.nativeElement
+              .querySelector('.submit-error')
+              ?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+          { injector: this.injector },
+        );
       },
     });
+  }
+
+  /** Springt zum ersten ungültigen Feld, damit die Fehlermeldung sichtbar wird. */
+  private focusFirstInvalidField(): void {
+    const field = FIELD_ORDER.find(([name]) => this.form.controls[name].invalid);
+    if (!field) {
+      return;
+    }
+    if (field[0] === 'description') {
+      this.descriptionView.set('edit');
+    }
+    afterNextRender(
+      () => {
+        const element = this.host.nativeElement.querySelector<HTMLElement>(field[1]);
+        element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element?.focus({ preventScroll: true });
+      },
+      { injector: this.injector },
+    );
   }
 
   private loadJob(id: number): void {

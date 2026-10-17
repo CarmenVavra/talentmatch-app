@@ -142,6 +142,75 @@ describe('job pages', () => {
       expect(navigate).toHaveBeenCalledWith(['/jobs', 9, 'pipeline']);
     });
 
+    it('makes the selected description text bold and previews it', async () => {
+      const fixture = TestBed.createComponent(JobCreateComponent);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      const textarea = root.querySelector('#description') as HTMLTextAreaElement;
+      textarea.value = 'Ihre Aufgaben: Entwicklung';
+      textarea.dispatchEvent(new Event('input'));
+      textarea.setSelectionRange(0, 13);
+
+      (root.querySelector('.bold-button') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      expect(textarea.value).toBe('**Ihre Aufgaben**: Entwicklung');
+      expect(textarea.value.slice(textarea.selectionStart, textarea.selectionEnd)).toBe(
+        'Ihre Aufgaben',
+      );
+
+      textarea.setSelectionRange(19, 30);
+      textarea.dispatchEvent(new KeyboardEvent('keydown', { key: 'b', ctrlKey: true }));
+      await fixture.whenStable();
+      expect(textarea.value).toBe('**Ihre Aufgaben**: **Entwicklung**');
+
+      const preview = Array.from(root.querySelectorAll('.seg-opt')).find((o) =>
+        o.textContent?.includes('Vorschau'),
+      );
+      (preview?.querySelector('input') as HTMLInputElement).click();
+      await fixture.whenStable();
+      expect(textarea.hidden).toBeTrue();
+      expect(
+        Array.from(root.querySelectorAll('.description-preview strong')).map((s) => s.textContent),
+      ).toEqual(['Ihre Aufgaben', 'Entwicklung']);
+    });
+
+    it('explains a too long description and does not submit', async () => {
+      const fixture = TestBed.createComponent(JobCreateComponent);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      const set = (selector: string, value: string) => {
+        const el = root.querySelector(selector) as HTMLInputElement;
+        el.value = value;
+        el.dispatchEvent(new Event('input'));
+      };
+      set('#title', 'QA Engineer');
+      set('#location', 'Berlin');
+      set('#skillInput', 'Cypress');
+      set('#description', 'x'.repeat(20012));
+      await fixture.whenStable();
+      expect(root.querySelector('.char-count')?.textContent).toContain('20.012 / 20.000');
+      expect(root.querySelector('#description')?.classList).toContain('is-invalid');
+
+      (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+      await fixture.whenStable();
+      http.expectNone('/api/jobs');
+      expect(root.textContent).toContain('12 Zeichen zu lang');
+    });
+
+    it('focuses the first invalid field when submitting an incomplete form', async () => {
+      const fixture = TestBed.createComponent(JobCreateComponent);
+      document.body.appendChild(fixture.nativeElement);
+      try {
+        await fixture.whenStable();
+        const root = fixture.nativeElement as HTMLElement;
+        (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+        await fixture.whenStable();
+        expect(document.activeElement).toBe(root.querySelector('#title'));
+      } finally {
+        fixture.nativeElement.remove();
+      }
+    });
+
     it('requires at least one skill', async () => {
       const fixture = TestBed.createComponent(JobCreateComponent);
       await fixture.whenStable();

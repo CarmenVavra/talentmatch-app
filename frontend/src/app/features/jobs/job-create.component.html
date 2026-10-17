@@ -35,7 +35,7 @@
   }
 
   @if (error(); as message) {
-    <div class="alert" role="alert">
+    <div class="alert submit-error" role="alert">
       <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
       <span>{{ message }}</span>
     </div>
@@ -126,14 +126,70 @@
     </div>
 
     <div class="field span-2">
-      <label for="description">Beschreibung</label>
+      <div class="description-head">
+        <label for="description">Beschreibung</label>
+        <div class="description-tools">
+          <button
+            type="button"
+            class="btn btn-secondary bold-button"
+            title="Auswahl fett darstellen (Strg+B)"
+            aria-label="Auswahl fett darstellen"
+            [disabled]="descriptionView() === 'preview'"
+            (mousedown)="$event.preventDefault()"
+            (click)="makeBold(descriptionInput)"
+          >
+            <strong>F</strong>
+          </button>
+          <app-segmented-control
+            ariaLabel="Ansicht Beschreibung"
+            [options]="descriptionViewOptions"
+            [(value)]="descriptionView"
+          />
+        </div>
+      </div>
       <textarea
+        #descriptionInput
         id="description"
         class="input"
-        rows="5"
+        rows="10"
         formControlName="description"
         placeholder="Aufgaben, Team, Rahmenbedingungen …"
+        [class.is-invalid]="descriptionTooLong()"
+        [attr.aria-describedby]="'description-count'"
+        [hidden]="descriptionView() === 'preview'"
+        (keydown.control.b)="$event.preventDefault(); makeBold(descriptionInput)"
+        (keydown.meta.b)="$event.preventDefault(); makeBold(descriptionInput)"
       ></textarea>
+      @if (descriptionView() === 'preview') {
+        <div class="description-preview" aria-live="polite">
+          @if (form.controls.description.value.trim(); as text) {
+            <app-rich-text [text]="text" />
+          } @else {
+            <span class="muted">Noch keine Beschreibung.</span>
+          }
+        </div>
+      }
+      <div class="description-foot">
+        @if (descriptionTooLong()) {
+          <span class="field-error"
+            >Die Beschreibung ist {{ formatCount(descriptionLength() - maxDescription) }} Zeichen zu
+            lang – bitte auf höchstens {{ formatCount(maxDescription) }} Zeichen kürzen.</span
+          >
+        } @else if (serverErrors()['description']; as msg) {
+          <span class="field-error">{{ msg }}</span>
+        }
+        <span
+          id="description-count"
+          class="char-count"
+          [class.near-limit]="descriptionLength() > maxDescription * 0.9"
+          [class.over-limit]="descriptionTooLong()"
+          >{{ formatCount(descriptionLength()) }} / {{ formatCount(maxDescription) }} Zeichen</span
+        >
+      </div>
+      <span class="hint"
+        >Text mit <code>**</code> umschließen, um ihn fett darzustellen, z. B.
+        <code>**Ihre Aufgaben**</code> – oder Text markieren und „F“ bzw. Strg+B drücken.</span
+      >
     </div>
 
     <div class="actions span-2">

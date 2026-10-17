@@ -224,6 +224,19 @@ describe('portal', () => {
       expect(root.querySelector('app-apply-dialog')).not.toBeNull();
     });
 
+    it('renders **bold** markup in the description', async () => {
+      const fixture = await render();
+      http
+        .expectOne('/api/applicant/jobs/3')
+        .flush(openJob({ description: '**Ihre Aufgaben**\nPipelines bauen' }));
+      await fixture.whenStable();
+      const description = (fixture.nativeElement as HTMLElement).querySelector(
+        '.full-description',
+      ) as HTMLElement;
+      expect(description.querySelector('strong')?.textContent).toBe('Ihre Aufgaben');
+      expect(description.textContent).not.toContain('**');
+    });
+
     it('shows that the applicant has already applied', async () => {
       const fixture = await render();
       http.expectOne('/api/applicant/jobs/3').flush(openJob({ applied: true }));

@@ -49,3 +49,10 @@ export function relativeTime(value: string | Date, now: Date = new Date()): stri
 export function formatMegabytes(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
+
+const COUNT = new Intl.NumberFormat('de-DE');
+
+/** Ganzzahl mit deutschem Tausenderpunkt, z. B. 20.000. */
+export function formatCount(value: number): string {
+  return COUNT.format(value);
+}

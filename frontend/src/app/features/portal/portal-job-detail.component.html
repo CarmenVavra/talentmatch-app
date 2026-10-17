@@ -29,7 +29,7 @@
         <section class="section">
           <h2 class="section-title">Stellenbeschreibung</h2>
           @if (j.description) {
-            <p class="full-description">{{ j.description }}</p>
+            <p class="full-description"><app-rich-text [text]="j.description" /></p>
           } @else {
             <p class="muted">Für diese Stelle liegt noch keine Beschreibung vor.</p>
           }
