@@ -1,0 +1,43 @@
+@let app = application();
+<div class="card-top">
+  <div
+    class="score"
+    title="Match-Score"
+    [style.background]="tone().bg"
+    [style.color]="tone().fg"
+    [style.border-left-color]="tone().bar"
+  >
+    {{ score() }}
+  </div>
+  <div class="who">
+    <span class="name">{{ app.candidate.firstName }} {{ app.candidate.lastName }}</span>
+    <span class="role">{{ position() }}</span>
+  </div>
+</div>
+
+@if (!compact() && topSkills().length) {
+  <div class="chips">
+    @for (skill of topSkills(); track skill) {
+      <span class="chip">{{ skill }}</span>
+    }
+  </div>
+}
+
+@if (pending()) {
+  <button
+    type="button"
+    class="btn btn-secondary btn-wide analyze"
+    [disabled]="analyzing()"
+    (click)="startAnalysis($event)"
+    (mousedown)="$event.stopPropagation()"
+    (touchstart)="$event.stopPropagation()"
+  >
+    {{ analyzing() ? 'Analyse läuft …' : 'KI-Analyse starten' }}
+    <lucide-icon [img]="icons.sparkles" [size]="14" aria-hidden="true" />
+  </button>
+}
+
+<div class="foot">
+  <span>{{ app.createdAt | dayMonth }}</span>
+  <span>{{ app.candidate.city ?? '—' }}</span>
+</div>

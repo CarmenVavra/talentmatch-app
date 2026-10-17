@@ -1,0 +1,120 @@
+<div
+  class="dialog-backdrop"
+  tabindex="-1"
+  (click)="onBackdropClick($event)"
+  (keydown.escape)="closed.emit()"
+>
+  <div
+    #dialog
+    class="dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="upload-title"
+    tabindex="-1"
+  >
+    <div class="dialog-head">
+      <div>
+        <div class="kicker">{{ job().title }}</div>
+        <h3 id="upload-title" class="dialog-title">Lebensläufe hochladen</h3>
+      </div>
+      <button
+        type="button"
+        class="btn btn-icon btn-secondary"
+        aria-label="Dialog schließen"
+        (click)="closed.emit()"
+      >
+        <lucide-icon [img]="icons.x" [size]="16" aria-hidden="true" />
+      </button>
+    </div>
+
+    <div class="dialog-body">
+      <div
+        class="dropzone"
+        role="button"
+        tabindex="0"
+        [class.hot]="zoneHot()"
+        (click)="pickFiles()"
+        (keydown.enter)="pickFiles()"
+        (keydown.space)="$event.preventDefault(); pickFiles()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="zoneHot.set(false)"
+        (drop)="onDrop($event)"
+      >
+        <lucide-icon
+          class="zone-icon"
+          [img]="icons.upload"
+          [size]="28"
+          [strokeWidth]="1.8"
+          aria-hidden="true"
+        />
+        <div class="zone-title">PDF-Dateien hierher ziehen</div>
+        <div class="zone-hint">
+          oder klicken zum Auswählen · max. 10 MB pro Datei · mehrere Dateien möglich
+        </div>
+        <input
+          #fileInput
+          type="file"
+          multiple
+          accept=".pdf,application/pdf"
+          class="visually-hidden"
+          tabindex="-1"
+          aria-label="PDF-Dateien auswählen"
+          (change)="onFilesSelected(fileInput)"
+        />
+      </div>
+
+      @if (uploads.hasUploads()) {
+        <ul class="files" aria-live="polite">
+          @for (item of uploads.uploads(); track item.id) {
+            @let itemTone = scoreToneOf(item);
+            <li class="file">
+              <lucide-icon
+                class="file-icon"
+                [img]="icons.fileText"
+                [size]="20"
+                [strokeWidth]="1.8"
+                aria-hidden="true"
+              />
+              <div class="file-main">
+                <div class="file-row">
+                  <span class="file-name" [title]="item.file.name">{{ item.file.name }}</span>
+                  <span class="file-size">{{ size(item) }}</span>
+                </div>
+                <div class="bar">
+                  <div
+                    class="bar-fill"
+                    [style.width.%]="item.progress"
+                    [style.background]="barColor(item)"
+                  ></div>
+                </div>
+                <span class="stage" [class.stage-error]="item.stage === 'error'">
+                  {{ stageLabel(item) }}
+                  @if (item.stage === 'error' && item.retryable) {
+                    <button
+                      type="button"
+                      class="btn btn-ghost retry"
+                      (click)="uploads.retry(job().id, item.id)"
+                    >
+                      <lucide-icon [img]="icons.retry" [size]="13" aria-hidden="true" />
+                      Erneut versuchen
+                    </button>
+                  }
+                </span>
+              </div>
+              <span class="file-score" [style.background]="itemTone.bg" [style.color]="itemTone.fg">
+                {{ item.stage === 'error' ? '—' : (item.score ?? '…') }}
+              </span>
+            </li>
+          }
+        </ul>
+      }
+
+      <div class="dialog-foot">
+        <span class="engine">Text-Extraktion: Apache Tika · Analyse: Spring AI</span>
+        <button type="button" class="btn btn-primary to-pipeline" (click)="closed.emit()">
+          Zur Pipeline
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,96 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.score-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.score-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.score-kicker {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tm-gray);
+  font-weight: 600;
+}
+
+.score-value {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.score-number {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 72px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.score-max {
+  font-size: 18px;
+  color: var(--tm-gray);
+  font-weight: 600;
+}
+
+.verdict {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 10px;
+  margin-bottom: 10px;
+}
+
+.cells {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  gap: 2px;
+  height: 12px;
+}
+
+.subs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 20px;
+  margin-top: 4px;
+}
+
+.sub {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sub-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.sub-value {
+  font-weight: 700;
+}
+
+.sub-track {
+  height: 4px;
+  background: var(--tm-track);
+}
+
+.sub-fill {
+  height: 4px;
+}
+
+.pending-hint {
+  font-size: 13px;
+  color: var(--tm-gray);
+}

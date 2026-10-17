@@ -1,0 +1,57 @@
+<div class="panel">
+  <div class="panel-head">
+    <h4>Interview-Helper</h4>
+    <div class="progress">
+      <span class="muted small">{{ store.discussedCount() }} / {{ total() }} besprochen</span>
+      <div class="progress-track" aria-hidden="true">
+        <div class="progress-fill" [style.width.%]="progress()"></div>
+      </div>
+    </div>
+  </div>
+
+  @for (question of store.questions(); track question.index) {
+    <button
+      type="button"
+      class="question"
+      role="checkbox"
+      [class.checked]="question.discussed"
+      [attr.aria-checked]="question.discussed"
+      (click)="store.toggleQuestion(question.index)"
+    >
+      <span class="box" aria-hidden="true">
+        @if (question.discussed) {
+          <lucide-icon [img]="icons.check" [size]="13" [strokeWidth]="3.5" />
+        }
+      </span>
+      <span class="question-body">
+        <span class="topic">{{ question.topic }}</span>
+        <span class="text">{{ question.text }}</span>
+      </span>
+    </button>
+  }
+
+  <div class="notes">
+    <div class="field">
+      <label for="interview-notes">Notizen zum Gespräch</label>
+      <textarea
+        #notes
+        id="interview-notes"
+        class="input"
+        placeholder="Eindrücke, Antworten, nächste Schritte …"
+        [value]="initialNotes()"
+        (input)="store.updateNotes(notes.value)"
+      ></textarea>
+      <span class="save-state" [class.error]="store.notesState() === 'error'" aria-live="polite">{{
+        saveLabel()
+      }}</span>
+    </div>
+    <button
+      type="button"
+      class="btn btn-ghost generate"
+      [disabled]="store.generating()"
+      (click)="store.generateMoreQuestions()"
+    >
+      {{ store.generating() ? 'Fragen werden generiert …' : '+ Weitere Fragen generieren' }}
+    </button>
+  </div>
+</div>

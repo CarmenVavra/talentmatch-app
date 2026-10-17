@@ -1,0 +1,111 @@
+@if (detail(); as d) {
+  <div class="panel">
+    <div class="panel-head">
+      <h4>Lebenslauf</h4>
+      <app-segmented-control
+        ariaLabel="Ansicht Lebenslauf"
+        [options]="tabOptions"
+        [value]="tab()"
+        (valueChange)="selectTab($event)"
+      />
+    </div>
+
+    @if (tab() === 'cv') {
+      @if (profile(); as p) {
+        <div class="cv">
+          <div class="section">
+            <h6 class="muted">Berufserfahrung</h6>
+            @for (position of p.positions; track $index) {
+              <div class="entry">
+                <span class="period">{{ period(position.period) }}</span>
+                <div class="entry-body">
+                  <span class="entry-role">{{ position.role }}</span>
+                  <span class="entry-company"
+                    >{{ position.company
+                    }}{{ position.location ? ' · ' + position.location : '' }}</span
+                  >
+                  @for (point of position.highlights; track $index) {
+                    <span class="point"><span class="point-dash"></span>{{ point }}</span>
+                  }
+                </div>
+              </div>
+            } @empty {
+              <p class="muted small">Keine Stationen extrahiert.</p>
+            }
+          </div>
+          <div class="facts">
+            <div>
+              <h6 class="muted">Ausbildung</h6>
+              <div class="fact">{{ p.education ?? '—' }}</div>
+            </div>
+            <div>
+              <h6 class="muted">Sprachen</h6>
+              <div class="fact">{{ p.languages.length ? p.languages.join(' · ') : '—' }}</div>
+            </div>
+          </div>
+          <div>
+            <h6 class="muted">Technologien (extrahiert)</h6>
+            <div class="tags">
+              @for (tech of p.technologies; track tech) {
+                <span class="tag tag-neutral">{{ tech }}</span>
+              }
+            </div>
+          </div>
+        </div>
+      } @else {
+        <div class="cv">
+          <p class="muted small no-profile">
+            Der Lebenslauf wurde eingelesen. Werdegang, Ausbildung und Technologien werden bei der
+            KI-Analyse strukturiert extrahiert.
+          </p>
+        </div>
+      }
+    } @else {
+      <div class="pdf-frame">
+        @if (d.resumeFileName) {
+          @if (pdfUrl(); as url) {
+            <iframe
+              class="pdf-viewer"
+              [src]="url"
+              [title]="'PDF-Vorschau ' + d.resumeFileName"
+            ></iframe>
+          } @else if (store.resumeError(); as message) {
+            <div class="alert" role="alert">{{ message }}</div>
+          } @else {
+            <div class="page skeleton"></div>
+          }
+        } @else {
+          <!-- Demo-Daten ohne Originaldatei: generierte Vorschau aus dem extrahierten Profil -->
+          <div class="page">
+            <div class="page-meta">
+              <span class="page-file">
+                <lucide-icon [img]="icons.fileText" [size]="14" aria-hidden="true" />
+                Lebenslauf_{{ d.candidate.firstName }}_{{ d.candidate.lastName }}.pdf
+              </span>
+              <span>Generierte Vorschau</span>
+            </div>
+            <div class="page-name">{{ d.candidate.firstName }} {{ d.candidate.lastName }}</div>
+            <div class="page-contact">
+              {{ d.candidate.email ?? '' }} · {{ d.candidate.phone ?? '' }} ·
+              {{ d.candidate.city ?? '' }}
+            </div>
+            <div class="page-rule"></div>
+            @for (position of profile()?.positions ?? []; track $index) {
+              <div class="page-line">
+                <strong>{{ position.role }}</strong
+                >, {{ position.company }} — {{ position.period }}<br />
+                {{ position.highlights.join('. ') }}
+              </div>
+            }
+            <div class="page-line">
+              <strong>Ausbildung:</strong> {{ profile()?.education ?? '—' }}
+            </div>
+            <div class="page-line">
+              <strong>Sprachen:</strong> {{ (profile()?.languages ?? []).join(' · ') }}
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

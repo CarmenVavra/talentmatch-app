@@ -1,0 +1,159 @@
+.pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(28px, 3vw, 38px);
+}
+
+.meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--tm-gray);
+}
+
+.upload-button {
+  min-width: 220px;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 14px 0;
+  border-top: 2px solid var(--tm-line-strong);
+  border-bottom: 1px solid var(--tm-line-fine);
+}
+
+.filter-search {
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+
+.filter-label {
+  font-size: 13px;
+  color: var(--tm-gray);
+}
+
+.legend {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--tm-gray);
+
+  > span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+}
+
+/* Board: auf schmalen Viewports horizontal scrollen */
+.board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  align-items: start;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+  background: var(--tm-surface-2);
+  outline: 0 solid transparent;
+  outline-offset: -2px;
+
+  &.drop-active {
+    background: #e2ecf5;
+    outline: 2px solid var(--tm-blue);
+  }
+}
+
+.column-bar {
+  height: 4px;
+}
+
+.column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 10px;
+}
+
+.column-label {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.column-count {
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--tm-surface);
+  padding: 2px 8px;
+}
+
+.column-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 8px 10px;
+  flex: 1;
+}
+
+.empty {
+  border: 2px dashed rgba(43, 47, 49, 0.2);
+  padding: 20px 12px;
+  font-size: 12px;
+  color: var(--tm-gray);
+}
+
+.sk-title {
+  display: block;
+  height: 34px;
+  width: 360px;
+  max-width: 80vw;
+}
+
+.sk-meta {
+  display: block;
+  height: 14px;
+  width: 280px;
+  max-width: 70vw;
+}
+
+.sk-card {
+  height: 110px;
+  background: #dfe3e6;
+}

@@ -1,0 +1,78 @@
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.auth-panel,
+.panel-box {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 28px 32px;
+  background: var(--tm-surface);
+  border-top: 4px solid var(--tm-blue);
+  box-shadow: var(--shadow-md);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wordmark {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.title {
+  margin: 6px 0 6px;
+  font-size: 32px;
+}
+
+.lead {
+  margin: 0;
+  font-size: 14px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.submit {
+  margin-top: 6px;
+  width: 100%;
+}
+
+.alert lucide-icon {
+  color: var(--tm-red-bar);
+  margin-top: 2px;
+}
+
+.success {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  font-size: 14px;
+  background: var(--tm-green-surface);
+  border-left: 4px solid var(--tm-green-bar);
+
+  lucide-icon {
+    color: var(--tm-green-bar);
+    margin-top: 2px;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

@@ -1,0 +1,59 @@
+<div class="auth-page">
+  <div class="auth-panel">
+    <div class="brand">
+      <app-logo />
+      <span class="wordmark">TalentMatch</span>
+    </div>
+    <div>
+      <div class="kicker">Anmelden</div>
+      <h2 class="title">Willkommen zurück</h2>
+      <p class="muted lead">KI-gestütztes Recruiting für HR-Manager:innen.</p>
+    </div>
+
+    @if (error(); as message) {
+      <div class="alert" role="alert">
+        <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+        <span>{{ message }}</span>
+      </div>
+    }
+
+    <form class="form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="email">E-Mail</label>
+        <input
+          id="email"
+          class="input"
+          type="email"
+          formControlName="email"
+          autocomplete="username"
+          [class.is-invalid]="form.controls.email.touched && form.controls.email.invalid"
+        />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <span class="field-error">Bitte eine gültige E-Mail-Adresse eingeben.</span>
+        }
+      </div>
+      <div class="field">
+        <label for="password">Passwort</label>
+        <input
+          id="password"
+          class="input"
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          [class.is-invalid]="form.controls.password.touched && form.controls.password.invalid"
+        />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <span class="field-error">Bitte das Passwort eingeben.</span>
+        }
+      </div>
+      <button
+        type="submit"
+        class="btn btn-primary btn-lg btn-wide submit"
+        [disabled]="submitting()"
+      >
+        {{ submitting() ? 'Anmeldung läuft …' : 'Anmelden' }}
+        <lucide-icon [img]="icons.arrowRight" [size]="16" aria-hidden="true" />
+      </button>
+    </form>
+  </div>
+</div>

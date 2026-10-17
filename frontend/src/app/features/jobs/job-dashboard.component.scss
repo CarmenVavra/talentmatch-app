@@ -1,0 +1,297 @@
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.title-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.title-kicker {
+  margin-bottom: 6px;
+}
+
+.new-job {
+  min-width: 180px;
+}
+
+/* KPI-Leiste */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  border-top: 2px solid var(--tm-line-strong);
+  border-bottom: 2px solid var(--tm-line-strong);
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 20px;
+  border-right: 1px solid var(--tm-line-fine);
+
+  &:first-child {
+    padding-left: 0;
+  }
+}
+
+.kpi-label {
+  font-size: 12px;
+  color: var(--tm-gray);
+}
+
+.kpi-value {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1.05;
+}
+
+.kpi-note {
+  font-size: 12px;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.toolbar-search {
+  flex: 1 1 280px;
+  max-width: 420px;
+}
+
+.view-toggle {
+  margin-left: auto;
+}
+
+/* Kacheln: 2px-Lücken auf dunklem Grund ergeben sichtbare Rasterlinien */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  gap: 2px;
+  background: var(--tm-line-strong);
+  border: 2px solid var(--tm-line-strong);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 280px;
+  padding: 22px;
+  background: var(--tm-surface);
+  color: var(--tm-ink);
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tm-hover);
+    color: var(--tm-ink);
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+.tile-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.tile-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.job-title {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1.15;
+  text-wrap: pretty;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--tm-gray);
+}
+
+.avg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: none;
+}
+
+.avg-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--tm-gray);
+}
+
+.avg-badge {
+  font-weight: 800;
+  font-size: 15px;
+  padding: 4px 8px;
+}
+
+.skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tile-foot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--tm-line-fine);
+}
+
+.count-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.count {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.count-value {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.since {
+  font-size: 12px;
+  color: var(--tm-gray);
+}
+
+.status-bar {
+  display: flex;
+  height: 8px;
+  gap: 2px;
+  background: transparent;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--tm-gray);
+
+  > span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+}
+
+/* Tabelle */
+.table-wrap {
+  background: var(--tm-surface);
+  border-top: 2px solid var(--tm-line-strong);
+  overflow-x: auto;
+}
+
+.job-table {
+  min-width: 860px;
+
+  td {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+}
+
+.row-title {
+  font-weight: 700;
+}
+
+.row-sub {
+  font-size: 12px;
+  color: var(--tm-gray);
+}
+
+.strong {
+  font-weight: 700;
+}
+
+.table-badge {
+  font-weight: 800;
+  padding: 3px 8px;
+}
+
+.cell-arrow {
+  text-align: right;
+  padding-right: 16px;
+  color: var(--tm-blue);
+}
+
+.empty {
+  padding: 40px 0;
+  border-top: 2px solid var(--tm-line-strong);
+  color: var(--tm-gray);
+}
+
+/* Skeletons */
+.tile-skeleton {
+  cursor: default;
+}
+
+.sk-line {
+  display: block;
+  height: 12px;
+  width: 70%;
+
+  &.short {
+    width: 30%;
+  }
+}
+
+.sk-value {
+  display: block;
+  height: 34px;
+  width: 40%;
+}
+
+.sk-title {
+  display: block;
+  height: 22px;
+  width: 85%;
+}
+
+.sk-block {
+  display: block;
+  margin-top: auto;
+  height: 60px;
+}

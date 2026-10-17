@@ -1,0 +1,153 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--tm-surface);
+  border-bottom: 2px solid var(--tm-line-strong);
+}
+
+.header-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 var(--page-padding-x);
+  display: flex;
+  align-items: stretch;
+  gap: 32px;
+  min-height: 60px;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--tm-ink);
+  text-decoration: none;
+}
+
+.wordmark {
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.nav {
+  display: flex;
+  gap: 24px;
+  margin-right: auto;
+}
+
+/* Unterstrich sitzt bündig auf der Header-Linie */
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding-top: 3px;
+  margin-bottom: -2px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--tm-gray);
+  border-bottom: 3px solid transparent;
+
+  &:hover {
+    color: var(--tm-ink);
+  }
+
+  &.active {
+    color: var(--tm-ink);
+    border-bottom-color: var(--tm-blue);
+  }
+}
+
+.account {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.role-chip {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  background: var(--tm-blue-tint);
+  color: var(--tm-blue-pressed);
+}
+
+.account-button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.account-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.account-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.account-dept {
+  font-size: 11px;
+  color: var(--tm-gray);
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  background: var(--tm-blue);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  right: 0;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  background: var(--tm-surface);
+  border-top: 2px solid var(--tm-line-strong);
+  box-shadow: var(--shadow-md);
+  z-index: 30;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--tm-line-fine);
+  background: transparent;
+  color: var(--tm-ink);
+  font-size: 14px;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--tm-hover);
+    color: var(--tm-ink);
+  }
+
+  lucide-icon {
+    color: var(--tm-blue);
+  }
+}

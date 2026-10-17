@@ -1,0 +1,151 @@
+.cv {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+
+  h6 {
+    margin-bottom: 10px;
+  }
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid var(--tm-line-fine);
+}
+
+.period {
+  font-size: 12px;
+  color: var(--tm-gray);
+  font-variant-numeric: tabular-nums;
+}
+
+.entry-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.entry-role {
+  font-weight: 700;
+}
+
+.entry-company {
+  font-size: 13px;
+  color: var(--tm-blue);
+}
+
+.point {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--tm-ink-2);
+}
+
+.point-dash {
+  flex: none;
+  width: 6px;
+  height: 2px;
+  margin-top: 10px;
+  background: var(--tm-lightblue);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  border-top: 2px solid var(--tm-line-strong);
+  padding-top: 16px;
+}
+
+.fact {
+  font-size: 14px;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.small {
+  font-size: 13px;
+}
+
+.no-profile {
+  margin: 0;
+}
+
+/* PDF-Vorschau */
+.pdf-frame {
+  padding: 20px;
+  background: var(--tm-track);
+}
+
+.pdf-viewer {
+  display: block;
+  width: 100%;
+  height: 720px;
+  border: 0;
+  background: var(--tm-surface);
+  box-shadow: var(--shadow-md);
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  aspect-ratio: 1 / 1.414;
+  max-height: 720px;
+  overflow: hidden;
+  padding: 36px 32px;
+  background: var(--tm-surface);
+  box-shadow: var(--shadow-md);
+
+  &.skeleton {
+    background: var(--tm-surface-2);
+  }
+}
+
+.page-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--tm-gray);
+}
+
+.page-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-name {
+  font-weight: 800;
+  font-size: 22px;
+  margin-top: 8px;
+}
+
+.page-contact {
+  font-size: 12px;
+  color: var(--tm-gray);
+}
+
+.page-rule {
+  height: 2px;
+  background: var(--tm-ink);
+  margin: 6px 0;
+}
+
+.page-line {
+  font-size: 12px;
+  line-height: 1.5;
+}

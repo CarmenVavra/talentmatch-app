@@ -1,0 +1,204 @@
+@if (store.error(); as message) {
+  <div class="alert" role="alert">
+    <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+    <span>{{ message }}</span>
+    <a class="btn btn-ghost" routerLink="/candidates">Zur Bewerberliste</a>
+  </div>
+}
+
+@if (detail(); as d) {
+  <div class="detail">
+    <nav class="breadcrumb" aria-label="Brotkrümel">
+      <a routerLink="/jobs">Stellen</a><span>/</span>
+      <a [routerLink]="['/jobs', d.job.id, 'pipeline']">{{ d.job.title }}</a
+      ><span>/</span>
+      <span>{{ d.candidate.firstName }} {{ d.candidate.lastName }}</span>
+    </nav>
+
+    <!-- Header-Panel -->
+    <div class="header-panel">
+      <div class="person">
+        <div class="status-row">
+          @if (status(); as s) {
+            <span class="status-tag" [style.background]="s.tagBg" [style.color]="s.tagFg">{{
+              s.label
+            }}</span>
+          }
+          <span class="received">Eingegangen {{ d.createdAt | dayMonth }}</span>
+        </div>
+        <h1 class="name">{{ d.candidate.firstName }} {{ d.candidate.lastName }}</h1>
+        <div class="position">{{ position() }}</div>
+        <div class="contact">
+          @if (d.candidate.email) {
+            <a class="contact-item" [href]="'mailto:' + d.candidate.email">
+              <lucide-icon [img]="icons.mail" [size]="15" aria-hidden="true" />{{
+                d.candidate.email
+              }}
+            </a>
+          }
+          @if (d.candidate.phone) {
+            <span class="contact-item">
+              <lucide-icon [img]="icons.phone" [size]="15" aria-hidden="true" />{{
+                d.candidate.phone
+              }}
+            </span>
+          }
+          @if (d.candidate.city) {
+            <span class="contact-item">
+              <lucide-icon [img]="icons.mapPin" [size]="15" aria-hidden="true" />{{
+                d.candidate.city
+              }}
+            </span>
+          }
+        </div>
+        <div class="actions">
+          <button
+            type="button"
+            class="btn btn-primary btn-lg btn-wide invite"
+            [disabled]="d.status === 'INTERVIEW'"
+            (click)="store.setStatus('INTERVIEW')"
+          >
+            Zum Interview einladen
+            <lucide-icon [img]="icons.calendar" [size]="16" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary btn-lg"
+            [disabled]="d.status === 'HIRED'"
+            (click)="store.setStatus('HIRED')"
+          >
+            Zusage
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary btn-lg btn-danger-text"
+            [disabled]="d.status === 'REJECTED'"
+            (click)="store.setStatus('REJECTED')"
+          >
+            Absage
+          </button>
+        </div>
+      </div>
+      <app-score-panel class="score" [analysis]="analysis()" />
+    </div>
+
+    <!-- Zwei Spalten -->
+    <div class="columns">
+      <app-resume-panel />
+
+      <div class="insights">
+        @if (analysis(); as a) {
+          <!-- KI-Zusammenfassung -->
+          <div class="panel summary">
+            <div class="summary-head">
+              <lucide-icon class="icon-ai" [img]="icons.sparkles" [size]="16" aria-hidden="true" />
+              <h4>KI-Zusammenfassung</h4>
+              <span class="model">{{ a.model }} · {{ a.analyzedAt | relativeTime }}</span>
+            </div>
+            <p class="summary-text">{{ a.summary }}</p>
+          </div>
+
+          <!-- Pro / Contra -->
+          <div class="panel">
+            <div class="panel-head pro-head">
+              <h4>Pro / Contra</h4>
+              <span class="muted small">{{ requirementRatio() }} Anforderungen erfüllt</span>
+            </div>
+            <div class="pro-contra">
+              <div class="pro">
+                <span class="cell-label pro-label">Gefundene Skills</span>
+                @for (skill of a.matchingSkills; track skill) {
+                  <span class="skill-line">
+                    <lucide-icon
+                      class="icon-pro"
+                      [img]="icons.check"
+                      [size]="15"
+                      [strokeWidth]="2.5"
+                      aria-hidden="true"
+                    />
+                    {{ skill }}
+                  </span>
+                } @empty {
+                  <span class="muted small">Keine</span>
+                }
+              </div>
+              <div class="contra">
+                <span class="cell-label contra-label">Fehlende Skills</span>
+                @for (skill of a.missingSkills; track skill) {
+                  <span class="skill-line">
+                    <lucide-icon
+                      class="icon-contra"
+                      [img]="icons.x"
+                      [size]="15"
+                      [strokeWidth]="2.5"
+                      aria-hidden="true"
+                    />
+                    {{ skill }}
+                  </span>
+                } @empty {
+                  <span class="muted small">Keine</span>
+                }
+              </div>
+            </div>
+            @if (a.riskFactors.length) {
+              <div class="risks">
+                <span class="cell-label risk-label">Risikofaktoren</span>
+                @for (risk of a.riskFactors; track risk) {
+                  <span class="skill-line risk-line">
+                    <lucide-icon
+                      class="icon-risk"
+                      [img]="icons.alert"
+                      [size]="15"
+                      aria-hidden="true"
+                    />
+                    {{ risk }}
+                  </span>
+                }
+              </div>
+            }
+          </div>
+
+          <app-interview-helper />
+        } @else {
+          <!-- Zustand „nicht analysiert“ -->
+          <div class="panel pending">
+            <lucide-icon class="icon-ai" [img]="icons.sparkles" [size]="22" aria-hidden="true" />
+            <h4>KI-Analyse ausstehend</h4>
+            <p class="muted pending-text">
+              Der Lebenslauf wurde eingelesen, aber noch nicht mit der Stelle abgeglichen. Nach der
+              Analyse erscheinen hier Match-Score, Pro/Contra-Matrix, Zusammenfassung und
+              Interviewfragen.
+            </p>
+            @if (store.analyzeError(); as message) {
+              <div class="alert" role="alert">
+                <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+                <span>{{ message }}</span>
+              </div>
+            }
+            <button
+              type="button"
+              class="btn btn-primary btn-lg btn-wide analyze"
+              [disabled]="store.analyzing()"
+              (click)="store.analyze()"
+            >
+              {{ store.analyzing() ? 'Analyse läuft …' : 'KI-Analyse starten' }}
+              <lucide-icon [img]="icons.arrowRight" [size]="16" aria-hidden="true" />
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+} @else if (store.loading()) {
+  <div class="detail" aria-busy="true">
+    <span class="skeleton sk-crumb"></span>
+    <div class="skeleton sk-header"></div>
+    <div class="columns">
+      <div class="skeleton sk-panel"></div>
+      <div class="insights">
+        <div class="skeleton sk-small"></div>
+        <div class="skeleton sk-small"></div>
+      </div>
+    </div>
+  </div>
+}

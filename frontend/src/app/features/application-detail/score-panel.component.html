@@ -1,0 +1,42 @@
+<div class="score-row">
+  <div class="score-block">
+    <span class="score-kicker">KI-Match-Score</span>
+    <div class="score-value">
+      <span class="score-number" [style.color]="tone().fg">{{ label() }}</span>
+      <span class="score-max">/100</span>
+    </div>
+  </div>
+  <span class="verdict" [style.background]="tone().bg" [style.color]="tone().fg">{{
+    tone().verdict
+  }}</span>
+</div>
+
+<div
+  class="cells"
+  role="img"
+  [attr.aria-label]="score() === null ? 'Noch kein Score' : 'Match-Score ' + score() + ' von 100'"
+>
+  @for (color of cells(); track $index) {
+    <div [style.background]="color"></div>
+  }
+</div>
+
+@if (analysis()) {
+  <div class="subs">
+    @for (sub of subScores(); track sub.label) {
+      <div class="sub">
+        <div class="sub-head">
+          <span class="muted">{{ sub.label }}</span
+          ><span class="sub-value">{{ sub.value }}</span>
+        </div>
+        <div class="sub-track">
+          <div class="sub-fill" [style.width.%]="sub.value" [style.background]="sub.color"></div>
+        </div>
+      </div>
+    }
+  </div>
+} @else {
+  <span class="pending-hint"
+    >Noch kein Score – Analyse starten, um den Abgleich mit der Stelle zu berechnen.</span
+  >
+}

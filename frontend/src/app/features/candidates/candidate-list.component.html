@@ -1,0 +1,111 @@
+<div class="page">
+  <div>
+    <div class="kicker title-kicker">Alle Stellen</div>
+    <h1 class="page-title">Bewerber:innen</h1>
+  </div>
+
+  <div class="toolbar">
+    <div class="search toolbar-search">
+      <lucide-icon [img]="icons.search" [size]="16" aria-hidden="true" />
+      <input
+        #search
+        class="input"
+        type="search"
+        placeholder="Name, Stelle oder Skill suchen"
+        aria-label="Bewerbungen durchsuchen"
+        [value]="query()"
+        (input)="query.set(search.value)"
+      />
+    </div>
+    <app-segmented-control ariaLabel="Status" [options]="statusOptions" [(value)]="status" />
+    <app-segmented-control
+      class="sort"
+      ariaLabel="Sortierung"
+      [options]="sortOptions"
+      [(value)]="sort"
+    />
+  </div>
+
+  @if (errorText(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+      <button type="button" class="btn btn-ghost" (click)="applications.reload()">
+        Erneut laden
+      </button>
+    </div>
+  }
+
+  @if (applications.isLoading() && !applications.hasValue()) {
+    <div class="table-wrap">
+      @for (s of [1, 2, 3, 4, 5, 6]; track s) {
+        <div class="skeleton sk-row"></div>
+      }
+    </div>
+  } @else if (rows().length === 0 && applications.hasValue()) {
+    <div class="empty">Keine Bewerbungen gefunden. Suche oder Filter anpassen.</div>
+  } @else if (applications.hasValue()) {
+    <div class="table-wrap">
+      <table class="table candidate-table">
+        <thead>
+          <tr>
+            <th>Bewerber:in</th>
+            <th>Stelle</th>
+            <th>Status</th>
+            <th>Match-Score</th>
+            <th>Eingang</th>
+            <th>Ort</th>
+            <th><span class="visually-hidden">Öffnen</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (app of rows(); track app.id) {
+            @let tone = app.overallScore | scoreTone;
+            @let meta = app.status | statusMeta;
+            <tr
+              tabindex="0"
+              [attr.aria-label]="
+                'Bewerbung öffnen: ' + app.candidate.firstName + ' ' + app.candidate.lastName
+              "
+              (click)="open(app)"
+              (keydown.enter)="open(app)"
+            >
+              <td class="cell-person">
+                <div class="row-title">
+                  {{ app.candidate.firstName }} {{ app.candidate.lastName }}
+                </div>
+                <div class="row-sub">{{ position(app) }}</div>
+              </td>
+              <td>{{ app.jobTitle }}</td>
+              <td>
+                <span
+                  class="status-tag"
+                  [style.background]="meta.tagBg"
+                  [style.color]="meta.tagFg"
+                  >{{ meta.label }}</span
+                >
+              </td>
+              <td>
+                <span
+                  class="score-badge"
+                  [style.background]="tone.bg"
+                  [style.color]="tone.fg"
+                  [style.border-left-color]="tone.bar"
+                  >{{ app.overallScore | scoreLabel }}</span
+                >
+              </td>
+              <td class="muted">{{ app.createdAt | deDate }}</td>
+              <td class="muted">{{ app.candidate.city ?? '—' }}</td>
+              <td class="cell-arrow">
+                <lucide-icon [img]="icons.arrowRight" [size]="16" aria-hidden="true" />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <span class="count muted"
+      >{{ rows().length }} von {{ applications.value().length }} Bewerbungen</span
+    >
+  }
+</div>

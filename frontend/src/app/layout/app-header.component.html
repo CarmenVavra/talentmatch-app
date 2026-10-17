@@ -1,0 +1,61 @@
+<header class="header">
+  <div class="header-inner">
+    <a class="brand" routerLink="/jobs" aria-label="TalentMatch – zur Stellenübersicht">
+      <app-logo />
+      <span class="wordmark">TalentMatch</span>
+    </a>
+
+    <nav class="nav" aria-label="Hauptnavigation">
+      @if (auth.isHrManager()) {
+        @for (item of navItems(); track item.key) {
+          <a
+            class="nav-link"
+            [class.active]="active() === item.key"
+            [attr.aria-current]="active() === item.key ? 'page' : null"
+            [routerLink]="item.link"
+            >{{ item.label }}</a
+          >
+        }
+      }
+    </nav>
+
+    @if (auth.user(); as user) {
+      <div class="account">
+        <span class="role-chip">{{ roleLabel() }}</span>
+        <button
+          type="button"
+          class="account-button"
+          [attr.aria-expanded]="menuOpen()"
+          aria-haspopup="menu"
+          (click)="toggleMenu($event)"
+        >
+          <span class="account-text">
+            <span class="account-name">{{ user.firstName }} {{ user.lastName }}</span>
+            @if (user.department) {
+              <span class="account-dept">{{ user.department }}</span>
+            }
+          </span>
+          <span class="avatar" aria-hidden="true">{{ auth.initials() }}</span>
+        </button>
+
+        @if (menuOpen()) {
+          <div class="menu" role="menu">
+            <a
+              class="menu-item"
+              role="menuitem"
+              routerLink="/account/password"
+              (click)="menuOpen.set(false)"
+            >
+              <lucide-icon [img]="icons.key" [size]="15" aria-hidden="true" />
+              Passwort ändern
+            </a>
+            <button type="button" class="menu-item" role="menuitem" (click)="logout()">
+              <lucide-icon [img]="icons.logout" [size]="15" aria-hidden="true" />
+              Abmelden
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</header>

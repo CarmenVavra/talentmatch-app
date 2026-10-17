@@ -1,0 +1,185 @@
+<div class="dashboard">
+  <div class="title-row">
+    <div>
+      <div class="kicker title-kicker">Dashboard</div>
+      <h1 class="page-title">Offene Stellen</h1>
+    </div>
+    <a class="btn btn-primary btn-lg btn-wide new-job" routerLink="/jobs/new">
+      Neue Stelle anlegen
+      <lucide-icon [img]="icons.plus" [size]="16" aria-hidden="true" />
+    </a>
+  </div>
+
+  <!-- KPI-Leiste -->
+  <div class="kpis">
+    @if (kpis().length) {
+      @for (kpi of kpis(); track kpi.label) {
+        <div class="kpi">
+          <span class="kpi-label">{{ kpi.label }}</span>
+          <span class="kpi-value">{{ kpi.value }}</span>
+          <span class="kpi-note" [style.color]="kpi.noteColor">{{ kpi.note }}</span>
+        </div>
+      }
+    } @else {
+      @for (s of [1, 2, 3, 4]; track s) {
+        <div class="kpi">
+          <span class="skeleton sk-line"></span>
+          <span class="skeleton sk-value"></span>
+          <span class="skeleton sk-line"></span>
+        </div>
+      }
+    }
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="search toolbar-search">
+      <lucide-icon [img]="icons.search" [size]="16" aria-hidden="true" />
+      <input
+        class="input"
+        type="search"
+        placeholder="Stelle, Abteilung oder Skill suchen"
+        aria-label="Stellen durchsuchen"
+        #search
+        [value]="query()"
+        (input)="query.set(search.value)"
+      />
+    </div>
+    <app-segmented-control
+      ariaLabel="Abteilung"
+      [options]="departmentOptions"
+      [(value)]="department"
+    />
+    <app-segmented-control
+      class="view-toggle"
+      ariaLabel="Ansicht"
+      [options]="viewOptions"
+      [(value)]="viewMode"
+    />
+  </div>
+
+  @if (store.error(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+      <button type="button" class="btn btn-ghost" (click)="store.load()">Erneut laden</button>
+    </div>
+  }
+
+  @if (store.loading() && !store.loaded()) {
+    <div class="tiles">
+      @for (s of skeletons; track s) {
+        <div class="tile tile-skeleton">
+          <span class="skeleton sk-line short"></span>
+          <span class="skeleton sk-title"></span>
+          <span class="skeleton sk-line"></span>
+          <span class="skeleton sk-block"></span>
+        </div>
+      }
+    </div>
+  } @else if (jobs().length === 0 && store.loaded()) {
+    <div class="empty">Keine Stellen gefunden. Suche oder Filter anpassen.</div>
+  } @else if (viewMode() === 'tiles') {
+    <div class="tiles">
+      @for (item of jobs(); track item.job.id) {
+        @let job = item.job;
+        @let tone = job.averageScore | scoreTone;
+        <a class="tile" [routerLink]="['/jobs', job.id, 'pipeline']">
+          <div class="tile-head">
+            <div class="tile-title">
+              <span class="kicker">{{ job.department }}</span>
+              <span class="job-title">{{ job.title }}</span>
+              <span class="meta">{{ job.experienceLevel }} · {{ job.location }}</span>
+            </div>
+            <div class="avg">
+              <span class="avg-label">Ø Score</span>
+              <span class="avg-badge" [style.background]="tone.bg" [style.color]="tone.fg">{{
+                job.averageScore | scoreLabel
+              }}</span>
+            </div>
+          </div>
+          <div class="skills">
+            @for (skill of job.requiredSkills; track skill) {
+              <span class="tag">{{ skill }}</span>
+            }
+          </div>
+          <div class="tile-foot">
+            <div class="count-row">
+              <div class="count">
+                <span class="count-value">{{ job.totalApplications }}</span>
+                <span class="muted">Bewerbungen</span>
+              </div>
+              <span class="since">seit {{ job.createdDate | deDate }}</span>
+            </div>
+            <div class="status-bar" aria-hidden="true">
+              @for (seg of item.segments; track seg.key) {
+                <div
+                  [style.flex]="seg.count"
+                  [style.background]="seg.color"
+                  [title]="seg.label + ': ' + seg.count"
+                ></div>
+              }
+            </div>
+            <div class="legend">
+              @for (seg of item.segments; track seg.key) {
+                <span
+                  ><span class="legend-dot" [style.background]="seg.color"></span>{{ seg.count }}
+                  {{ seg.short }}</span
+                >
+              }
+            </div>
+          </div>
+        </a>
+      }
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table class="table job-table">
+        <thead>
+          <tr>
+            <th>Stelle</th>
+            <th>Abteilung</th>
+            <th>Level</th>
+            <th>Bewerbungen</th>
+            <th>Neu</th>
+            <th>Interview</th>
+            <th>Ø Score</th>
+            <th>Erstellt</th>
+            <th><span class="visually-hidden">Öffnen</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of jobs(); track item.job.id) {
+            @let job = item.job;
+            @let tone = job.averageScore | scoreTone;
+            <tr
+              tabindex="0"
+              (click)="open(job)"
+              (keydown.enter)="open(job)"
+              [attr.aria-label]="'Pipeline öffnen: ' + job.title"
+            >
+              <td class="cell-title">
+                <div class="row-title">{{ job.title }}</div>
+                <div class="row-sub">{{ job.location }}</div>
+              </td>
+              <td>{{ job.department }}</td>
+              <td>{{ job.experienceLevel }}</td>
+              <td class="strong">{{ job.totalApplications }}</td>
+              <td>{{ job.statusCounts.NEW }}</td>
+              <td>{{ job.statusCounts.INTERVIEW }}</td>
+              <td>
+                <span class="table-badge" [style.background]="tone.bg" [style.color]="tone.fg">{{
+                  job.averageScore | scoreLabel
+                }}</span>
+              </td>
+              <td class="muted">{{ job.createdDate | deDate }}</td>
+              <td class="cell-arrow">
+                <lucide-icon [img]="icons.arrowRight" [size]="16" aria-hidden="true" />
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

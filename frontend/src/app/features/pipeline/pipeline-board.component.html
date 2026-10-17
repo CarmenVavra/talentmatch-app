@@ -1,0 +1,128 @@
+<div class="pipeline">
+  <div class="head">
+    <div class="head-text">
+      <nav class="breadcrumb" aria-label="Brotkrümel">
+        <a routerLink="/jobs">Stellen</a><span>/</span><span>Pipeline</span>
+      </nav>
+      @if (store.job(); as job) {
+        <h1 class="title">{{ job.title }}</h1>
+        <div class="meta">
+          <span>{{ job.department }}</span
+          ><span>{{ job.experienceLevel }}</span
+          ><span>{{ job.location }}</span
+          ><span>{{ store.total() }} Bewerbungen</span>
+        </div>
+      } @else {
+        <span class="skeleton sk-title"></span>
+        <span class="skeleton sk-meta"></span>
+      }
+    </div>
+    <button
+      type="button"
+      class="btn btn-primary btn-lg btn-wide upload-button"
+      [disabled]="!store.job()"
+      (click)="uploadOpen.set(true)"
+    >
+      Lebensläufe hochladen
+      <lucide-icon [img]="icons.upload" [size]="16" aria-hidden="true" />
+    </button>
+  </div>
+
+  <div class="filters">
+    <div class="search filter-search">
+      <lucide-icon [img]="icons.search" [size]="16" aria-hidden="true" />
+      <input
+        #search
+        class="input"
+        type="search"
+        placeholder="Name oder Skill"
+        aria-label="Bewerbungen durchsuchen"
+        [value]="store.query()"
+        (input)="store.query.set(search.value)"
+      />
+    </div>
+    <span class="filter-label">Match-Score</span>
+    <app-segmented-control
+      ariaLabel="Mindest-Match-Score"
+      [options]="scoreOptions"
+      [(value)]="store.minScore"
+    />
+    <div class="legend" aria-label="Legende Match-Score">
+      <span><span class="dot" style="background: #3f8f5f"></span>≥ 75</span>
+      <span><span class="dot" style="background: #e0a82e"></span>50–74</span>
+      <span><span class="dot" style="background: #c9473f"></span>&lt; 50</span>
+    </div>
+  </div>
+
+  @if (store.error(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+      <button type="button" class="btn btn-ghost" (click)="store.load(jobId())">
+        Erneut laden
+      </button>
+    </div>
+  }
+
+  @if (store.loading() && !store.job()) {
+    <div class="board">
+      @for (c of skeletonColumns; track c) {
+        <section class="column">
+          <div class="column-bar skeleton"></div>
+          <div class="column-cards">
+            <div class="skeleton sk-card"></div>
+            <div class="skeleton sk-card"></div>
+          </div>
+        </section>
+      }
+    </div>
+  } @else if (store.job()) {
+    <div class="board" cdkDropListGroup>
+      @for (column of store.columns(); track column.meta.key) {
+        <section
+          class="column"
+          cdkDropList
+          cdkDropListSortingDisabled
+          [cdkDropListData]="column.meta.key"
+          [class.drop-active]="hoverColumn() === column.meta.key"
+          [attr.aria-label]="'Spalte ' + column.meta.label"
+          (cdkDropListDropped)="onDrop($event)"
+          (cdkDropListEntered)="hoverColumn.set(column.meta.key)"
+          (cdkDropListExited)="hoverColumn.set(null)"
+        >
+          <div class="column-bar" [style.background]="column.meta.color"></div>
+          <div class="column-head">
+            <span class="column-label">{{ column.meta.label }}</span>
+            <span class="column-count">{{ column.cards.length }}</span>
+          </div>
+          <div class="column-cards">
+            @for (app of column.cards; track app.id) {
+              <app-candidate-card
+                cdkDrag
+                tabindex="0"
+                role="button"
+                [cdkDragData]="app"
+                [application]="app"
+                [analyzing]="store.analyzing().has(app.id)"
+                [attr.aria-label]="
+                  app.candidate.firstName + ' ' + app.candidate.lastName + ' öffnen'
+                "
+                (cdkDragStarted)="onDragStarted()"
+                (cdkDragEnded)="onDragEnded()"
+                (click)="open(app)"
+                (keydown.enter)="open(app)"
+                (analyze)="store.analyze($event)"
+              />
+            } @empty {
+              <div class="empty">Karte hierher ziehen</div>
+            }
+          </div>
+        </section>
+      }
+    </div>
+  }
+</div>
+
+@if (uploadOpen() && store.job(); as job) {
+  <app-upload-dialog [job]="job" (closed)="uploadOpen.set(false)" />
+}
