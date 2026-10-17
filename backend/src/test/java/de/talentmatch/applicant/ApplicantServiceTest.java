@@ -81,6 +81,22 @@ class ApplicantServiceTest {
     }
 
     @Test
+    void findsSingleOpenJobWithAppliedFlag() {
+        when(applicationRepository.existsByJobPositionIdAndApplicantAccountId(3L, 5L)).thenReturn(true);
+
+        assertThat(service.findOpenJob(EMAIL, 3L)).hasValueSatisfying(dto -> {
+            assertThat(dto.title()).isEqualTo("Data Engineer");
+            assertThat(dto.description()).isEqualTo("Pipelines");
+            assertThat(dto.applied()).isTrue();
+        });
+    }
+
+    @Test
+    void unknownOpenJobIsEmpty() {
+        assertThat(service.findOpenJob(EMAIL, 99L)).isEmpty();
+    }
+
+    @Test
     void mapsInternalStatusesToApplicantStatuses() {
         Application matched = application(ApplicationStatus.MATCHED);
         Application hired = application(ApplicationStatus.HIRED);

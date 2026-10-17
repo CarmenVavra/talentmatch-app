@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import de.talentmatch.applicant.api.MyApplicationDto;
 import de.talentmatch.applicant.api.OpenJobDto;
+import de.talentmatch.common.exception.ResourceNotFoundException;
 import de.talentmatch.resume.ApplicantDocuments;
 
 /**
@@ -35,6 +36,12 @@ public class ApplicantController {
     @GetMapping("/jobs")
     public List<OpenJobDto> openJobs(@AuthenticationPrincipal Jwt jwt) {
         return applicantService.listOpenJobs(jwt.getSubject());
+    }
+
+    @GetMapping("/jobs/{jobId}")
+    public OpenJobDto openJob(@AuthenticationPrincipal Jwt jwt, @PathVariable Long jobId) {
+        return applicantService.findOpenJob(jwt.getSubject(), jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Stelle", jobId));
     }
 
     @GetMapping("/applications")

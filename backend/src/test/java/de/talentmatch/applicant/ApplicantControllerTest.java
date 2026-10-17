@@ -11,8 +11,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -24,6 +26,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import de.talentmatch.applicant.api.MyApplicationDto;
+import de.talentmatch.applicant.api.OpenJobDto;
 import de.talentmatch.common.exception.BusinessRuleException;
 import de.talentmatch.resume.ApplicantDocuments;
 import de.talentmatch.support.WebMvcSecurityTestConfig;
@@ -50,6 +53,27 @@ class ApplicantControllerTest {
                 .andExpect(jsonPath("$[0].status").value("INTERVIEW"))
                 .andExpect(jsonPath("$[0].overallScore").doesNotExist())
                 .andExpect(jsonPath("$[0].analysis").doesNotExist());
+    }
+
+    @Test
+    void returnsSingleOpenJobWithFullDescription() throws Exception {
+        when(applicantService.findOpenJob("bewerber@talentmatch.de", 3L)).thenReturn(Optional.of(
+                new OpenJobDto(3L, "Data Engineer", "Data", "Mid", "Hamburg", "Lange Beschreibung.",
+                        List.of("Python"), LocalDate.of(2026, 9, 21), false)));
+
+        mockMvc.perform(get("/api/applicant/jobs/3").with(applicant()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.description").value("Lange Beschreibung."))
+                .andExpect(jsonPath("$.applied").value(false))
+                .andExpect(jsonPath("$.averageScore").doesNotExist());
+    }
+
+    @Test
+    void unknownOpenJobReturns404() throws Exception {
+        when(applicantService.findOpenJob("bewerber@talentmatch.de", 99L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/applicant/jobs/99").with(applicant()))
+                .andExpect(status().isNotFound());
     }
 
     @Test

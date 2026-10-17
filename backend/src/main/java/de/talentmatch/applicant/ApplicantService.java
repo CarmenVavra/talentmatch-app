@@ -2,6 +2,7 @@ package de.talentmatch.applicant;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.context.ApplicationEventPublisher;
@@ -52,6 +53,16 @@ public class ApplicantService {
         return jobRepository.findAllByOrderByCreatedDateDescIdAsc().stream()
                 .map(job -> toOpenJob(job, appliedJobIds.contains(job.getId())))
                 .toList();
+    }
+
+    /**
+     * Detailansicht einer offenen Stelle inklusive „bereits beworben“.
+     */
+    @Transactional(readOnly = true)
+    public Optional<OpenJobDto> findOpenJob(String email, Long jobId) {
+        UserAccount applicant = loadAccount(email);
+        return jobRepository.findById(jobId).map(job -> toOpenJob(job,
+                applicationRepository.existsByJobPositionIdAndApplicantAccountId(jobId, applicant.getId())));
     }
 
     @Transactional(readOnly = true)
