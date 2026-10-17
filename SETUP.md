@@ -38,6 +38,10 @@ Die Analyse neuer Lebensläufe nutzt Spring AI mit OpenAI `gpt-4o`. Vor dem Star
 set OPENAI_API_KEY=sk-...
 ```
 
+Ein dauerhaft in Windows gesetzter `OPENAI_API_KEY` (Benutzer- oder Systemvariable) wird von `start.bat`
+auch dann übernommen, wenn das aufrufende Fenster vor dem Setzen geöffnet wurde. Nach dem Ändern des Keys
+die App mit `stop.bat` / `start.bat` neu starten.
+
 Ohne Key startet die App trotzdem: alle Demo-Bewerbungen haben fertige Analysen; Upload und
 Text-Extraktion funktionieren, die KI-Analyse meldet dann „Analyse fehlgeschlagen – erneut versuchen“.
 Modell änderbar über `OPENAI_MODEL`.
