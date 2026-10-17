@@ -34,6 +34,10 @@ Die Zusatzunterlagen fließen in die KI-Analyse ein:
 
 HR sieht alle Unterlagen in der Bewerber-Detailansicht unter „PDF-Vorschau“.
 
+Neue Portal-Bewerbungen tragen in Pipeline und Bewerberliste ein **„Neu“**-Etikett und stehen oben in
+ihrer Pipeline-Spalte, bis HR sie öffnet oder verschiebt. Der Menüpunkt „Pipeline“ öffnet immer die zuletzt
+angesehene Stelle (auch nach erneutem Anmelden).
+
 Bewerber:innen sehen bewusst **keinen Match-Score** und keine KI-Bewertung; der interne Schritt
 „KI-analysiert“ erscheint für sie als „Eingegangen“. Nach dem Absenden startet die KI-Analyse
 automatisch im Hintergrund – schlägt sie fehl (z. B. ohne API-Key), kann HR sie in der Pipeline
