@@ -49,12 +49,22 @@
         <article class="tile" [attr.aria-label]="job.title">
           <div class="tile-title">
             <span class="kicker">{{ job.department }}</span>
-            <h2 class="job-title">{{ job.title }}</h2>
+            <h2 class="job-title">
+              <a class="job-link" [routerLink]="['/portal/jobs', job.id]">{{ job.title }}</a>
+            </h2>
             <span class="meta">{{ job.experienceLevel }} · {{ job.location }}</span>
           </div>
           @if (job.description) {
             <p class="description">{{ job.description }}</p>
           }
+          <a
+            class="details-link"
+            [routerLink]="['/portal/jobs', job.id]"
+            [attr.aria-label]="'Stellenbeschreibung ansehen: ' + job.title"
+          >
+            Stellenbeschreibung ansehen
+            <lucide-icon [img]="icons.arrowRight" [size]="14" aria-hidden="true" />
+          </a>
           <div class="skills">
             @for (skill of job.requiredSkills; track skill) {
               <span class="tag">{{ skill }}</span>

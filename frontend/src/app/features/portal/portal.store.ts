@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 
@@ -21,6 +22,14 @@ export class PortalStore {
   readonly applicationsLoading = signal(false);
   readonly applicationsLoaded = signal(false);
   readonly error = signal<string | null>(null);
+  /** Laden einer einzelnen Stelle (Detailseite). */
+  readonly jobLoading = signal(false);
+  readonly jobError = signal<string | null>(null);
+
+  /** Stelle aus dem geladenen Bestand (z. B. für die Detailseite). */
+  job(jobId: number): OpenJob | null {
+    return this.jobs().find((j) => j.id === jobId) ?? null;
+  }
 
   loadJobs(): void {
     this.resetIfOtherUser();
@@ -35,6 +44,34 @@ export class PortalStore {
       error: (err: unknown) => {
         this.error.set(errorMessage(err, 'Die Stellen konnten nicht geladen werden.'));
         this.jobsLoading.set(false);
+      },
+    });
+  }
+
+  /**
+   * Lädt eine Stelle frisch (auch bei Direktaufruf der Detailseite) und übernimmt sie in den Bestand,
+   * damit eine Bewerbung aus der Detailseite sofort als „beworben“ erscheint.
+   */
+  loadJob(jobId: number): void {
+    this.resetIfOtherUser();
+    this.jobLoading.set(true);
+    this.jobError.set(null);
+    this.api.openJob(jobId).subscribe({
+      next: (job) => {
+        this.jobs.update((list) =>
+          list.some((j) => j.id === job.id)
+            ? list.map((j) => (j.id === job.id ? job : j))
+            : [...list, job],
+        );
+        this.jobLoading.set(false);
+      },
+      error: (err: unknown) => {
+        this.jobError.set(
+          err instanceof HttpErrorResponse && err.status === 404
+            ? 'Diese Stelle gibt es nicht (mehr).'
+            : errorMessage(err, 'Die Stelle konnte nicht geladen werden.'),
+        );
+        this.jobLoading.set(false);
       },
     });
   }

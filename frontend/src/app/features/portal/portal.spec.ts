@@ -13,6 +13,7 @@ import {
   statusSteps,
   submittedDocuments,
 } from './my-applications.component';
+import { PortalJobDetailComponent } from './portal-job-detail.component';
 import { PortalJobsComponent, filterOpenJobs } from './portal-jobs.component';
 import { PortalStore } from './portal.store';
 
@@ -184,9 +185,78 @@ describe('portal', () => {
       expect(root.querySelectorAll('.applied').length).toBe(1);
       expect(root.textContent).not.toContain('Score');
 
+      expect(
+        Array.from(root.querySelectorAll('.details-link')).map((a) => a.getAttribute('href')),
+      ).toEqual(['/portal/jobs/3', '/portal/jobs/4']);
+      expect(root.querySelector('.job-link')?.getAttribute('href')).toBe('/portal/jobs/3');
+
       (root.querySelector('.apply') as HTMLButtonElement).click();
       await fixture.whenStable();
       expect(root.querySelector('app-apply-dialog')).not.toBeNull();
+    });
+  });
+
+  describe('PortalJobDetailComponent', () => {
+    async function render(jobId = '3') {
+      const fixture = TestBed.createComponent(PortalJobDetailComponent);
+      fixture.componentRef.setInput('jobId', jobId);
+      await fixture.whenStable();
+      return fixture;
+    }
+
+    it('shows the full description, requirements and the apply button', async () => {
+      const description = 'Sie bauen Datenpipelines.\nDazu gehören Monitoring und Qualität.';
+      const fixture = await render();
+      http.expectOne('/api/applicant/jobs/3').flush(openJob({ description }));
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(root.querySelector('h1')?.textContent).toContain('Data Engineer');
+      expect(root.querySelector('.full-description')?.textContent).toBe(description);
+      expect(
+        Array.from(root.querySelectorAll('.requirements li')).map((l) => l.textContent?.trim()),
+      ).toEqual(['Python', 'Spark']);
+      expect(root.querySelector('.breadcrumb')?.textContent).toContain('Data Engineer');
+      expect(root.textContent).not.toContain('Score');
+
+      (root.querySelector('.apply') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      expect(root.querySelector('app-apply-dialog')).not.toBeNull();
+    });
+
+    it('shows that the applicant has already applied', async () => {
+      const fixture = await render();
+      http.expectOne('/api/applicant/jobs/3').flush(openJob({ applied: true }));
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.querySelector('.applied')?.textContent).toContain('Beworben');
+      expect(root.querySelector('.apply')).toBeNull();
+    });
+
+    it('marks the job as applied right after applying', async () => {
+      const store = TestBed.inject(PortalStore);
+      const fixture = await render();
+      http.expectOne('/api/applicant/jobs/3').flush(openJob());
+      await fixture.whenStable();
+
+      store.apply(3, { resume: pdf(), skillProfile: null, coverLetter: null }).subscribe();
+      http.expectOne('/api/applicant/jobs/3/applications').flush(myApplication());
+      await fixture.whenStable();
+      expect(fixture.nativeElement.querySelector('.applied')).not.toBeNull();
+    });
+
+    it('explains when the job does not exist', async () => {
+      const fixture = await render('99');
+      http
+        .expectOne('/api/applicant/jobs/99')
+        .flush(
+          { detail: 'Stelle mit ID 99 wurde nicht gefunden.' },
+          { status: 404, statusText: 'Not Found' },
+        );
+      await fixture.whenStable();
+      expect(fixture.nativeElement.querySelector('.alert')?.textContent).toContain(
+        'Diese Stelle gibt es nicht (mehr).',
+      );
     });
   });
 
@@ -303,6 +373,7 @@ describe('portal', () => {
       expect(tags).toEqual(['Einladung zum Interview', 'Eingegangen']);
       expect(root.querySelectorAll('.step.current').length).toBe(2);
       expect(root.querySelector('.documents')?.textContent).toContain('Eingereicht: Lebenslauf');
+      expect(root.querySelector('.job-link')?.getAttribute('href')).toBe('/portal/jobs/3');
       expect(root.textContent).not.toContain('Score');
     });
 

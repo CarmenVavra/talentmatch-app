@@ -40,7 +40,11 @@
             <div class="application-head">
               <div>
                 <span class="kicker">{{ application.department }}</span>
-                <h2 class="job-title">{{ application.jobTitle }}</h2>
+                <h2 class="job-title">
+                  <a class="job-link" [routerLink]="['/portal/jobs', application.jobId]">{{
+                    application.jobTitle
+                  }}</a>
+                </h2>
                 <span class="meta"
                   >{{ application.location }} · eingereicht am
                   {{ application.submittedAt | deDate }}</span

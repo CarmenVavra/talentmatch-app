@@ -46,6 +46,14 @@ export const routes: Routes = [
               import('./features/portal/portal-jobs.component').then((m) => m.PortalJobsComponent),
           },
           {
+            path: 'jobs/:jobId',
+            title: 'Stellenbeschreibung · TalentMatch',
+            loadComponent: () =>
+              import('./features/portal/portal-job-detail.component').then(
+                (m) => m.PortalJobDetailComponent,
+              ),
+          },
+          {
             path: 'applications',
             title: 'Meine Bewerbungen · TalentMatch',
             loadComponent: () =>

@@ -13,6 +13,10 @@ export class ApplicantApiService {
     return this.http.get<OpenJob[]>('/api/applicant/jobs');
   }
 
+  openJob(jobId: number): Observable<OpenJob> {
+    return this.http.get<OpenJob>(`/api/applicant/jobs/${jobId}`);
+  }
+
   myApplications(): Observable<MyApplication[]> {
     return this.http.get<MyApplication[]>('/api/applicant/applications');
   }

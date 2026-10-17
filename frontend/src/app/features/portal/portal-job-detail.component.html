@@ -1,0 +1,100 @@
+<div class="page">
+  <nav class="breadcrumb" aria-label="Brotkrümel">
+    <a routerLink="/portal/jobs">Offene Stellen</a><span>/</span
+    ><span>{{ job()?.title ?? 'Stelle' }}</span>
+  </nav>
+
+  @if (job(); as j) {
+    <div class="detail">
+      <article class="main">
+        <header class="head">
+          <span class="kicker">{{ j.department }}</span>
+          <h1 class="page-title">{{ j.title }}</h1>
+          <ul class="facts" aria-label="Eckdaten">
+            <li>
+              <lucide-icon [img]="icons.mapPin" [size]="16" aria-hidden="true" />{{ j.location }}
+            </li>
+            <li>
+              <lucide-icon [img]="icons.briefcase" [size]="16" aria-hidden="true" />{{
+                j.experienceLevel
+              }}
+            </li>
+            <li>
+              <lucide-icon [img]="icons.calendar" [size]="16" aria-hidden="true" />ausgeschrieben
+              seit {{ j.createdDate | deDate }}
+            </li>
+          </ul>
+        </header>
+
+        <section class="section">
+          <h2 class="section-title">Stellenbeschreibung</h2>
+          @if (j.description) {
+            <p class="full-description">{{ j.description }}</p>
+          } @else {
+            <p class="muted">Für diese Stelle liegt noch keine Beschreibung vor.</p>
+          }
+        </section>
+
+        <section class="section">
+          <h2 class="section-title">Gesuchte Kenntnisse</h2>
+          <ul class="requirements">
+            @for (skill of j.requiredSkills; track skill) {
+              <li>
+                <lucide-icon
+                  class="req-icon"
+                  [img]="icons.check"
+                  [size]="16"
+                  [strokeWidth]="2.5"
+                  aria-hidden="true"
+                />{{ skill }}
+              </li>
+            }
+          </ul>
+        </section>
+      </article>
+
+      <aside class="cta" aria-label="Bewerbung">
+        @if (j.applied) {
+          <span class="applied">
+            <lucide-icon [img]="icons.check" [size]="15" aria-hidden="true" />
+            Beworben
+          </span>
+          <p class="cta-text">
+            Sie haben sich bereits auf diese Stelle beworben. Den Status sehen Sie unter „Meine
+            Bewerbungen“.
+          </p>
+          <a class="btn btn-secondary btn-wide" routerLink="/portal/applications"
+            >Zu meinen Bewerbungen</a
+          >
+        } @else {
+          <h2 class="cta-title">Interesse geweckt?</h2>
+          <p class="cta-text">
+            Bewerben Sie sich mit Ihrem Lebenslauf – optional auch mit Skill-Profil und Anschreiben.
+          </p>
+          <button type="button" class="btn btn-primary btn-wide apply" (click)="applying.set(true)">
+            Jetzt bewerben
+            <lucide-icon [img]="icons.arrowRight" [size]="16" aria-hidden="true" />
+          </button>
+        }
+        <a class="back" routerLink="/portal/jobs">
+          <lucide-icon [img]="icons.arrowLeft" [size]="14" aria-hidden="true" />
+          Alle offenen Stellen
+        </a>
+      </aside>
+    </div>
+
+    @if (applying()) {
+      <app-apply-dialog [job]="j" (closed)="applying.set(false)" />
+    }
+  } @else if (store.jobError(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+      <a class="btn btn-ghost" routerLink="/portal/jobs">Zu den offenen Stellen</a>
+    </div>
+  } @else {
+    <div class="detail">
+      <div class="main"><span class="skeleton sk-detail"></span></div>
+    </div>
+  }
+</div>
