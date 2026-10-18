@@ -680,6 +680,58 @@ class TalentMatchIntegrationTest {
     }
 
     @Test
+    void portalApplicantsAreNotifiedAboutEveryVisibleStatusChange() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        Integer id = portalApply(register("nora.notify@example.org"), jobId);
+
+        // Eingangsbestätigung an das Portal-Konto, mit Link ins Portal
+        String outbox = mockMvc.perform(get("/api/outbox").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andReturn().getResponse().getContentAsString();
+        List<String> recipients = JsonPath.read(outbox, "$.mails[?(@.applicationId == " + id + ")].recipient");
+        List<String> bodies = JsonPath.read(outbox, "$.mails[?(@.applicationId == " + id + ")].body");
+        assertThat(recipients).containsExactly("nora.notify@example.org");
+        assertThat(bodies.getFirst()).contains("Guten Tag Anna Berg", "/portal/applications");
+        assertThat(outboxSubjects(hrToken, id))
+                .containsExactly("Ihre Bewerbung als Lange Ausschreibung ist eingegangen");
+
+        // „KI-analysiert“ ist intern und löst keine Mail aus, jeder sichtbare Wechsel dagegen schon
+        changeStatus(hrToken, id, "MATCHED");
+        assertThat(outboxSubjects(hrToken, id)).hasSize(1);
+        changeStatus(hrToken, id, "INTERVIEW");
+        changeStatus(hrToken, id, "INTERVIEW");
+        changeStatus(hrToken, id, "HIRED");
+        changeStatus(hrToken, id, "REJECTED");
+        changeStatus(hrToken, id, "NEW");
+        assertThat(outboxSubjects(hrToken, id)).containsExactly(
+                "Ihre Bewerbung als Lange Ausschreibung wird geprüft",
+                "Ihre Bewerbung als Lange Ausschreibung",
+                "Zusage: Ihre Bewerbung als Lange Ausschreibung",
+                "Einladung zum Kennenlernen: Lange Ausschreibung",
+                "Ihre Bewerbung als Lange Ausschreibung ist eingegangen");
+
+        // Von HR hochgeladene Bewerbungen ohne Portal-Konto erhalten keine Mails
+        Integer uploaded = hrUpload(hrToken, jobId, "Lebenslauf_Olaf_Konto.pdf", "Olaf Konto olaf@example.org");
+        changeStatus(hrToken, uploaded, "INTERVIEW");
+        assertThat(outboxSubjects(hrToken, uploaded)).isEmpty();
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
+    void talentPoolRequestSendsNoAdditionalRejectionMail() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        Integer id = portalApply(register("rita.reject@example.org"), jobId);
+        requestTalentPool(hrToken, id).andExpect(status().isOk());
+
+        assertThat(outboxSubjects(hrToken, id)).containsExactly("Ihre Bewerbung",
+                "Ihre Bewerbung als Lange Ausschreibung ist eingegangen");
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
     void seededApplicantHasDemoApplications() throws Exception {
         String token = login(applicantEmail, applicantPassword);
         mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(token)))
@@ -743,16 +795,26 @@ class TalentMatchIntegrationTest {
                 .content("{\"subject\":\"Ihre Bewerbung\",\"body\":\"Guten Tag,\\n\\n[Antwort-Links]\\n\\nGruß\"}"));
     }
 
-    /** Liest den persönlichen Antwort-Link aus der ersten E-Mail der Bewerbung im Postausgang. */
+    /** Liest den persönlichen Antwort-Link aus der ersten Evidenz-E-Mail der Bewerbung im Postausgang. */
     private String talentPoolToken(String hrToken, Integer applicationId) throws Exception {
         String outbox = mockMvc.perform(get("/api/outbox").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.deliveryEnabled").value(false))
                 .andReturn().getResponse().getContentAsString();
         List<String> bodies = JsonPath.read(outbox, "$.mails[?(@.applicationId == " + applicationId + ")].body");
-        Matcher matcher = Pattern.compile("/evidenz/([A-Za-z0-9_-]+)\\?antwort=ja").matcher(bodies.getLast());
-        assertThat(matcher.find()).isTrue();
-        return matcher.group(1);
+        Pattern link = Pattern.compile("/evidenz/([A-Za-z0-9_-]+)\\?antwort=ja");
+        return bodies.reversed().stream()
+                .map(link::matcher)
+                .filter(Matcher::find)
+                .map(matcher -> matcher.group(1))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Keine Evidenz-Mail im Postausgang"));
+    }
+
+    private void changeStatus(String hrToken, Integer id, String status) throws Exception {
+        mockMvc.perform(patch("/api/applications/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"" + status + "\"}"))
+                .andExpect(status().isOk());
     }
 
     private List<String> outboxSubjects(String hrToken, Integer applicationId) throws Exception {

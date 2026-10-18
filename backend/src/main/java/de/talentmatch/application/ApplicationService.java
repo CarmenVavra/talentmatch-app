@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,12 +28,14 @@ public class ApplicationService {
 
     private final ApplicationRepository applicationRepository;
     private final JobPositionRepository jobRepository;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public ApplicationService(ApplicationRepository applicationRepository, JobPositionRepository jobRepository,
-                              Clock clock) {
+                              ApplicationEventPublisher events, Clock clock) {
         this.applicationRepository = applicationRepository;
         this.jobRepository = jobRepository;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -56,11 +59,18 @@ public class ApplicationService {
         return applicationRepository.findWithDetailsById(id).map(ApplicationMapper::toDetail);
     }
 
+    /**
+     * Ändert den Status; Bewerber:innen mit Portal-Konto werden per E-Mail benachrichtigt.
+     */
     @Transactional
     public ApplicationSummaryDto updateStatus(Long id, ApplicationStatus status) {
         Application application = loadWithDetails(id);
+        ApplicationStatus previous = application.getStatus();
         application.setStatus(status);
         application.markSeenByHr(LocalDateTime.now(clock));
+        if (previous != status) {
+            events.publishEvent(new ApplicationStatusChangedEvent(id, previous, status));
+        }
         return ApplicationMapper.toSummary(application);
     }
 
