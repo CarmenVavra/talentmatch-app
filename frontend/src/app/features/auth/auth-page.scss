@@ -107,3 +107,14 @@
     accent-color: var(--tm-blue);
   }
 }
+
+.forgot {
+  align-self: flex-end;
+  font-size: 13px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tm-gray);
+}

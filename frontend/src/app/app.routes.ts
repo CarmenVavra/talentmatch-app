@@ -20,6 +20,20 @@ export const routes: Routes = [
       import('./features/auth/register.component').then((m) => m.RegisterComponent),
   },
   {
+    path: 'passwort-vergessen',
+    canActivate: [guestGuard],
+    title: 'Passwort vergessen · TalentMatch',
+    loadComponent: () =>
+      import('./features/auth/forgot-password.component').then((m) => m.ForgotPasswordComponent),
+  },
+  {
+    // Ziel des Links aus der E-Mail – ohne Anmeldung, Zugang über das Token im Link
+    path: 'passwort-zuruecksetzen',
+    title: 'Neues Passwort · TalentMatch',
+    loadComponent: () =>
+      import('./features/auth/reset-password.component').then((m) => m.ResetPasswordComponent),
+  },
+  {
     // Datenschutzhinweise – öffentlich (auch vor der Registrierung)
     path: 'datenschutz',
     title: 'Datenschutz · TalentMatch',

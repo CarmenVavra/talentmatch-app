@@ -9,8 +9,10 @@ import { ToastService } from '../../core/state/toast.service';
 import { makeUser } from '../../testing/test-data';
 import { ChangePasswordComponent, passwordsMatch } from './change-password.component';
 import { DeleteAccountComponent } from './delete-account.component';
+import { ForgotPasswordComponent } from './forgot-password.component';
 import { LoginComponent } from './login.component';
 import { RegisterComponent } from './register.component';
+import { ResetPasswordComponent } from './reset-password.component';
 
 function setValue(root: HTMLElement, selector: string, value: string): void {
   const input = root.querySelector(selector) as HTMLInputElement;
@@ -81,6 +83,14 @@ describe('auth pages', () => {
         user: makeUser({ role: 'APPLICANT' }),
       });
       expect(navigate).toHaveBeenCalledWith('/portal/jobs');
+    });
+
+    it('links to the forgotten password page', async () => {
+      const fixture = TestBed.createComponent(LoginComponent);
+      await fixture.whenStable();
+      expect(fixture.nativeElement.querySelector('.forgot')?.getAttribute('href')).toBe(
+        '/passwort-vergessen',
+      );
     });
 
     it('shows the server error message', async () => {
@@ -262,6 +272,83 @@ describe('auth pages', () => {
       expect(root.querySelector('.alert')?.textContent).toContain('nicht korrekt');
       expect(root.querySelector('app-confirm-dialog')).toBeNull();
       expect(TestBed.inject(AuthService).isAuthenticated()).toBeTrue();
+    });
+  });
+
+  describe('ForgotPasswordComponent', () => {
+    it('requests a link and confirms without revealing whether the account exists', async () => {
+      const fixture = TestBed.createComponent(ForgotPasswordComponent);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      setValue(root, '#email', ' lea@example.org ');
+      (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+
+      const req = http.expectOne('/api/auth/password-reset/request');
+      expect(req.request.body).toEqual({ email: 'lea@example.org' });
+      req.flush(null);
+      await fixture.whenStable();
+
+      expect(root.querySelector('.success')?.textContent).toContain(
+        'Falls es zu lea@example.org ein Konto gibt',
+      );
+      expect(root.querySelector('form')).toBeNull();
+    });
+
+    it('validates the address', async () => {
+      const fixture = TestBed.createComponent(ForgotPasswordComponent);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+      await fixture.whenStable();
+      http.expectNone('/api/auth/password-reset/request');
+      expect(root.textContent).toContain('Bitte eine gültige E-Mail-Adresse eingeben.');
+    });
+  });
+
+  describe('ResetPasswordComponent', () => {
+    async function submitNewPassword(token: string | undefined) {
+      const fixture = TestBed.createComponent(ResetPasswordComponent);
+      fixture.componentRef.setInput('token', token);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      if (token) {
+        setValue(root, '#newPassword', 'ganz-neu-2026');
+        setValue(root, '#confirmPassword', 'ganz-neu-2026');
+        (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+      }
+      return fixture;
+    }
+
+    it('sets the new password with the token from the link', async () => {
+      const fixture = await submitNewPassword('abc');
+      const req = http.expectOne('/api/auth/password-reset/confirm');
+      expect(req.request.body).toEqual({ token: 'abc', newPassword: 'ganz-neu-2026' });
+      req.flush(null);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.querySelector('.success')?.textContent).toContain('Ihr Passwort wurde geändert.');
+      expect(root.querySelector('a.btn')?.getAttribute('href')).toBe('/login');
+    });
+
+    it('explains an expired link and offers a new one', async () => {
+      const fixture = await submitNewPassword('alt');
+      http
+        .expectOne('/api/auth/password-reset/confirm')
+        .flush(
+          { detail: 'Der Link ist ungültig oder abgelaufen.' },
+          { status: 400, statusText: 'Bad Request' },
+        );
+      await fixture.whenStable();
+      const alert = (fixture.nativeElement as HTMLElement).querySelector('.alert');
+      expect(alert?.textContent).toContain('ungültig oder abgelaufen');
+      expect(alert?.querySelector('a')?.getAttribute('href')).toBe('/passwort-vergessen');
+    });
+
+    it('rejects a link without token', async () => {
+      const fixture = await submitNewPassword(undefined);
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.textContent).toContain('Der Link ist unvollständig.');
+      expect(root.querySelector('form')).toBeNull();
     });
   });
 });

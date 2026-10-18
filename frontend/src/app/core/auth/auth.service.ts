@@ -54,6 +54,16 @@ export class AuthService {
       .pipe(tap((response) => this.startSession(response)));
   }
 
+  /** „Passwort vergessen“: Der Server antwortet immer gleich, ob es ein Konto gibt oder nicht. */
+  requestPasswordReset(email: string): Observable<void> {
+    return this.http.post<void>('/api/auth/password-reset/request', { email });
+  }
+
+  /** Setzt über den Einmal-Link aus der E-Mail ein neues Passwort. */
+  resetPassword(token: string, newPassword: string): Observable<void> {
+    return this.http.post<void>('/api/auth/password-reset/confirm', { token, newPassword });
+  }
+
   private startSession(response: LoginResponse): void {
     const session: StoredSession = {
       token: response.token,
