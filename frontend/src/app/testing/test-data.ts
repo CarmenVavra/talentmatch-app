@@ -3,6 +3,7 @@ import {
   ApplicationDetail,
   ApplicationSummary,
   DashboardKpis,
+  Duplicate,
   Job,
   User,
 } from '../core/models/api.models';
@@ -145,6 +146,21 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
     },
     analysis: makeAnalysis(),
     unread: false,
+    ...overrides,
+  };
+}
+
+export function makeDuplicate(overrides: Partial<Duplicate> = {}): Duplicate {
+  return {
+    id: 20,
+    firstName: 'Carmen',
+    lastName: 'Gregor',
+    createdAt: '2026-10-18T09:00:00',
+    status: 'MATCHED',
+    reason: 'NAME',
+    documents: [
+      { type: 'RESUME', fileName: 'Skillprofil_Carmen_Gregor.pdf', suggestedAs: 'SKILL_PROFILE' },
+    ],
     ...overrides,
   };
 }

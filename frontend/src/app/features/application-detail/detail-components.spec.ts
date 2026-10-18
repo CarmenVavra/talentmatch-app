@@ -3,7 +3,8 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { makeAnalysis, makeDetail } from '../../testing/test-data';
+import { Duplicate } from '../../core/models/api.models';
+import { makeAnalysis, makeDetail, makeDuplicate } from '../../testing/test-data';
 import { ApplicationDetailComponent } from './application-detail.component';
 import { ApplicationDetailStore } from './application-detail.store';
 import { InterviewHelperComponent } from './interview-helper.component';
@@ -50,14 +51,43 @@ describe('detail components', () => {
   afterEach(() => http.verify());
 
   describe('ApplicationDetailComponent', () => {
-    async function render(detail = makeDetail()) {
+    async function render(detail = makeDetail(), duplicates: Duplicate[] = []) {
       const fixture = TestBed.createComponent(ApplicationDetailComponent);
       fixture.componentRef.setInput('id', '10');
       await fixture.whenStable();
       http.expectOne('/api/applications/10').flush(detail);
+      http.expectOne('/api/applications/10/duplicates').flush(duplicates);
       await fixture.whenStable();
       return fixture;
     }
+
+    it('shows possible duplicates and merges them via the dialog', async () => {
+      const fixture = await render(makeDetail({ resumeFileName: 'cv.pdf' }), [makeDuplicate()]);
+      const root = fixture.nativeElement as HTMLElement;
+      const hint = root.querySelector('.duplicate-hint') as HTMLElement;
+      expect(hint.textContent).toContain('Mögliches Duplikat');
+      expect(hint.textContent).toContain('gleicher Name');
+      expect(hint.textContent).toContain('Skillprofil_Carmen_Gregor.pdf');
+
+      (hint.querySelector('.merge-button') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      const dialog = root.querySelector('app-merge-dialog') as HTMLElement;
+      expect((dialog.querySelector('.move-select') as HTMLSelectElement).value).toBe(
+        'SKILL_PROFILE',
+      );
+
+      (dialog.querySelector('.confirm') as HTMLButtonElement).click();
+      const merge = http.expectOne('/api/applications/10/merge');
+      expect(merge.request.body).toEqual({
+        sourceId: 20,
+        documents: [{ from: 'RESUME', to: 'SKILL_PROFILE' }],
+      });
+      merge.flush(makeDetail({ resumeFileName: 'cv.pdf', skillProfileFileName: 'Skill.pdf' }));
+      await fixture.whenStable();
+      expect(root.querySelector('app-merge-dialog')).toBeNull();
+      expect(root.querySelector('.duplicate-hint')).toBeNull();
+      http.expectOne('/api/applications/10/analyze').flush(makeDetail());
+    });
 
     it('renders header, AI summary and pro/contra matrix', async () => {
       const fixture = await render();

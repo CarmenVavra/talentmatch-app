@@ -31,6 +31,8 @@ export class ConfirmDialogComponent implements AfterViewInit {
   readonly busyLabel = input('Bitte warten …');
   readonly danger = input(false);
   readonly busy = input(false);
+  /** Bestätigen gesperrt, z. B. solange eine Auswahl im Dialog ungültig ist. */
+  readonly confirmDisabled = input(false);
 
   readonly confirmed = output<void>();
   readonly cancelled = output<void>();

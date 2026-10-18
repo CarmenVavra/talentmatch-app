@@ -1,0 +1,52 @@
+<app-confirm-dialog
+  title="Bewerbungen zusammenführen"
+  confirmLabel="Zusammenführen"
+  busyLabel="Wird zusammengeführt …"
+  [busy]="busy()"
+  [confirmDisabled]="!!problem()"
+  (confirmed)="confirm()"
+  (cancelled)="cancelled.emit()"
+>
+  <p>
+    Die Unterlagen von
+    <strong>{{ source().firstName }} {{ source().lastName }}</strong> (eingegangen
+    {{ source().createdAt | dayMonth }}{{ reason(source()) ? ', ' + reason(source()) : '' }}) werden
+    in diese Bewerbung übernommen. Die andere Bewerbung wird danach gelöscht, und die KI-Analyse
+    startet neu.
+  </p>
+  <p class="scope">
+    Beide Bewerbungen gehören zur Stelle <strong>„{{ target().job.title }}“</strong> – Bewerbungen
+    auf andere Stellen bleiben unberührt.
+  </p>
+
+  @if (source().documents.length) {
+    <ul class="moves">
+      @for (doc of source().documents; track doc.type; let i = $index) {
+        @let target = targets()[i];
+        <li class="move">
+          <span class="move-file" [title]="doc.fileName">{{ doc.fileName }}</span>
+          <select
+            #targetSelect
+            class="input move-select"
+            [attr.aria-label]="'Übernehmen als: ' + doc.fileName"
+            (change)="select(i, targetSelect)"
+          >
+            @for (type of types; track type) {
+              <option [value]="type" [selected]="target === type">als {{ typeLabel(type) }}</option>
+            }
+            <option value="SKIP" [selected]="target === 'SKIP'">nicht übernehmen</option>
+          </select>
+          @if (replaces(target); as replaced) {
+            <span class="replaces">ersetzt „{{ replaced }}“</span>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="muted">Die andere Bewerbung enthält keine Originaldateien.</p>
+  }
+
+  @if (problem(); as message) {
+    <p class="field-error merge-problem">{{ message }}</p>
+  }
+</app-confirm-dialog>

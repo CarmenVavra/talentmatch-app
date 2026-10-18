@@ -32,7 +32,7 @@
         class="btn confirm"
         [class.btn-primary]="!danger()"
         [class.btn-danger]="danger()"
-        [disabled]="busy()"
+        [disabled]="busy() || confirmDisabled()"
         (click)="confirmed.emit()"
       >
         {{ busy() ? busyLabel() : confirmLabel() }}

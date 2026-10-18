@@ -68,6 +68,57 @@ export interface ApplicationDocuments {
   coverLetter: File | null;
 }
 
+/** Dokumentart im Backend. */
+export type DocumentType = 'RESUME' | 'SKILL_PROFILE' | 'COVER_LETTER';
+
+/** Merkmal, an dem Dateien bzw. Bewerbungen derselben Person erkannt wurden (stärkstes zuerst). */
+export type GroupMatch = 'EMAIL' | 'PHONE' | 'NAME' | 'NONE';
+
+/** Vorab ausgewertete Datei eines HR-Uploads. */
+export interface InspectedFile {
+  index: number;
+  fileName: string;
+  type: DocumentType | null;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+  phone: string | null;
+  error: string | null;
+}
+
+export interface FileGroup {
+  fileIndexes: number[];
+  match: GroupMatch;
+  needsReview: boolean;
+}
+
+export interface UploadInspection {
+  files: InspectedFile[];
+  groups: FileGroup[];
+}
+
+export interface DuplicateDocument {
+  type: DocumentType;
+  fileName: string;
+  suggestedAs: DocumentType;
+}
+
+/** Mögliches Duplikat einer Bewerbung (gleiche Stelle). */
+export interface Duplicate {
+  id: number;
+  firstName: string;
+  lastName: string;
+  createdAt: string;
+  status: ApplicationStatus;
+  reason: GroupMatch;
+  documents: DuplicateDocument[];
+}
+
+export interface MergeRequest {
+  sourceId: number;
+  documents: { from: DocumentType; to: DocumentType }[];
+}
+
 /** Pfadsegment der Unterlagen-Endpunkte {@code /api/applications/{id}/{kind}}. */
 export type DocumentKind = 'resume' | 'skill-profile' | 'cover-letter';
 

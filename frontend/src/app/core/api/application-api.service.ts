@@ -4,9 +4,13 @@ import { Observable } from 'rxjs';
 
 import {
   ApplicationDetail,
+  ApplicationDocuments,
   ApplicationStatus,
   ApplicationSummary,
   DocumentKind,
+  Duplicate,
+  MergeRequest,
+  UploadInspection,
 } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
@@ -50,14 +54,42 @@ export class ApplicationApiService {
     return this.http.post<ApplicationDetail>(`/api/applications/${id}/questions/generate`, {});
   }
 
-  /** Upload mit Fortschritts-Events (multipart, Feld „file“). */
-  upload(jobId: number, file: File): Observable<HttpEvent<ApplicationSummary>> {
+  /** Vorabprüfung mehrerer Dateien: Dokumentart und Zuordnung zu Personen (speichert nichts). */
+  inspect(jobId: number, files: readonly File[]): Observable<UploadInspection> {
     const body = new FormData();
-    body.append('file', file, file.name);
+    for (const file of files) {
+      body.append('files', file, file.name);
+    }
+    return this.http.post<UploadInspection>(`/api/jobs/${jobId}/applications/inspect`, body);
+  }
+
+  /** Upload einer Person mit Fortschritts-Events: „file“ (Lebenslauf), optional „skillProfile“, „coverLetter“. */
+  upload(
+    jobId: number,
+    documents: ApplicationDocuments,
+  ): Observable<HttpEvent<ApplicationSummary>> {
+    const body = new FormData();
+    body.append('file', documents.resume, documents.resume.name);
+    if (documents.skillProfile) {
+      body.append('skillProfile', documents.skillProfile, documents.skillProfile.name);
+    }
+    if (documents.coverLetter) {
+      body.append('coverLetter', documents.coverLetter, documents.coverLetter.name);
+    }
     return this.http.post<ApplicationSummary>(`/api/jobs/${jobId}/applications`, body, {
       observe: 'events',
       reportProgress: true,
     });
+  }
+
+  /** Andere Bewerbungen derselben Person auf diese Stelle. */
+  duplicates(id: number): Observable<Duplicate[]> {
+    return this.http.get<Duplicate[]>(`/api/applications/${id}/duplicates`);
+  }
+
+  /** Führt eine andere Bewerbung in diese über (die andere wird gelöscht). */
+  merge(id: number, request: MergeRequest): Observable<ApplicationDetail> {
+    return this.http.post<ApplicationDetail>(`/api/applications/${id}/merge`, request);
   }
 
   /** Original-PDF einer Bewerbungsunterlage. */

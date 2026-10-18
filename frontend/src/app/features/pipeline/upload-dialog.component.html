@@ -49,7 +49,8 @@
         />
         <div class="zone-title">PDF-Dateien hierher ziehen</div>
         <div class="zone-hint">
-          oder klicken zum Auswählen · max. 10 MB pro Datei · mehrere Dateien möglich
+          oder klicken zum Auswählen · max. 10 MB pro Datei · Lebensläufe, Skill-Profile und
+          Anschreiben – Unterlagen derselben Person werden automatisch zusammengefasst
         </div>
         <input
           #fileInput
@@ -62,6 +63,123 @@
           (change)="onFilesSelected(fileInput)"
         />
       </div>
+
+      @if (uploads.inspecting()) {
+        <div class="inspecting" role="status">
+          <span class="skeleton inspecting-bar"></span>
+          Dateien werden geprüft und Personen zugeordnet …
+        </div>
+      }
+
+      @if (uploads.inspectError(); as message) {
+        <div class="alert" role="alert">
+          <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+          <span>{{ message }}</span>
+        </div>
+      }
+
+      @if (uploads.hasDraft() && !uploads.inspecting()) {
+        <section class="draft" aria-labelledby="draft-title">
+          <div class="draft-head">
+            <h4 id="draft-title">
+              {{ uploads.draftFileCount() }}
+              {{ uploads.draftFileCount() === 1 ? 'Datei' : 'Dateien' }} →
+              {{ uploads.groups().length }}
+              {{ uploads.groups().length === 1 ? 'Bewerbung' : 'Bewerbungen' }}
+            </h4>
+            <span class="muted draft-hint">Zuordnung und Dokumentart bei Bedarf anpassen.</span>
+          </div>
+
+          @for (group of uploads.groups(); track group.id) {
+            @let problem = groupProblem(group);
+            <article
+              class="person"
+              [class.review]="group.needsReview && !problem"
+              [class.invalid]="problem"
+            >
+              <div class="person-head">
+                <strong class="person-name">{{ groupLabel(group) }}</strong>
+                @if (matchLabel(group); as match) {
+                  <span class="match" [class.match-review]="group.needsReview">
+                    {{ match }}{{ group.needsReview ? ' – bitte prüfen' : '' }}
+                  </span>
+                }
+              </div>
+              <ul class="draft-files">
+                @for (file of group.files; track file.key) {
+                  <li class="draft-file">
+                    <lucide-icon
+                      class="file-icon"
+                      [img]="icons.fileText"
+                      [size]="18"
+                      [strokeWidth]="1.8"
+                      aria-hidden="true"
+                    />
+                    <span class="draft-name" [title]="file.file.name">{{ file.file.name }}</span>
+                    <select
+                      #typeSelect
+                      class="input select type-select"
+                      [attr.aria-label]="'Dokumentart von ' + file.file.name"
+                      [value]="file.type"
+                      (change)="onTypeChange(file.key, typeSelect)"
+                    >
+                      @for (type of documentTypes; track type) {
+                        <option [value]="type" [selected]="type === file.type">
+                          {{ typeLabel(type) }}
+                        </option>
+                      }
+                    </select>
+                    <select
+                      #groupSelect
+                      class="input select group-select"
+                      [attr.aria-label]="'Person von ' + file.file.name"
+                      (change)="onGroupChange(file.key, groupSelect)"
+                    >
+                      @for (other of uploads.groups(); track other.id) {
+                        <option [value]="other.id" [selected]="other.id === group.id">
+                          {{ groupLabel(other) }}
+                        </option>
+                      }
+                      <option value="new">Eigene Bewerbung</option>
+                    </select>
+                    <button
+                      type="button"
+                      class="btn btn-icon btn-ghost remove-file"
+                      [attr.aria-label]="file.file.name + ' entfernen'"
+                      (click)="uploads.removeFile(file.key)"
+                    >
+                      <lucide-icon [img]="icons.x" [size]="14" aria-hidden="true" />
+                    </button>
+                  </li>
+                }
+              </ul>
+              @if (problem) {
+                <span class="field-error">{{ problem }}</span>
+              }
+            </article>
+          }
+
+          <div class="draft-actions">
+            <button
+              type="button"
+              class="btn btn-secondary discard"
+              (click)="uploads.discardDraft()"
+            >
+              Verwerfen
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary submit-draft"
+              [disabled]="!uploads.canSubmit()"
+              (click)="uploads.submit(job().id)"
+            >
+              {{ uploads.groups().length }}
+              {{ uploads.groups().length === 1 ? 'Bewerbung' : 'Bewerbungen' }} hochladen
+              <lucide-icon [img]="icons.upload" [size]="15" aria-hidden="true" />
+            </button>
+          </div>
+        </section>
+      }
 
       @if (uploads.hasUploads()) {
         <ul class="files" aria-live="polite">
@@ -77,9 +195,14 @@
               />
               <div class="file-main">
                 <div class="file-row">
-                  <span class="file-name" [title]="item.file.name">{{ item.file.name }}</span>
+                  <span class="file-name" [title]="item.fileNames.join(', ')">{{
+                    item.label
+                  }}</span>
                   <span class="file-size">{{ size(item) }}</span>
                 </div>
+                @if (item.fileNames.length > 1) {
+                  <span class="file-list">{{ item.fileNames.join(' · ') }}</span>
+                }
                 <div class="bar">
                   <div
                     class="bar-fill"

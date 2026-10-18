@@ -6,17 +6,20 @@ import {
   inject,
   input,
   numberAttribute,
+  signal,
   untracked,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 
+import { Duplicate, MergeRequest } from '../../core/models/api.models';
 import { positionLabel } from '../../core/util/application';
 import { statusMeta } from '../../core/util/score';
 import { ICONS } from '../../shared/icons';
 import { DayMonthPipe, RelativeTimePipe } from '../../shared/pipes';
 import { ApplicationDetailStore } from './application-detail.store';
 import { InterviewHelperComponent } from './interview-helper.component';
+import { MergeDialogComponent, duplicateReason } from './merge-dialog.component';
 import { ResumePanelComponent } from './resume-panel.component';
 import { ScorePanelComponent } from './score-panel.component';
 
@@ -30,6 +33,7 @@ import { ScorePanelComponent } from './score-panel.component';
     ScorePanelComponent,
     ResumePanelComponent,
     InterviewHelperComponent,
+    MergeDialogComponent,
   ],
   providers: [ApplicationDetailStore],
   templateUrl: './application-detail.component.html',
@@ -44,6 +48,9 @@ export class ApplicationDetailComponent {
   readonly id = input.required<number, string>({ transform: numberAttribute });
 
   protected readonly detail = this.store.detail;
+  /** Duplikat, das gerade zusammengeführt wird (Dialog offen). */
+  protected readonly mergeWith = signal<Duplicate | null>(null);
+  protected readonly duplicateReason = duplicateReason;
   protected readonly analysis = this.store.analysis;
   protected readonly status = computed(() => {
     const d = this.detail();
@@ -64,6 +71,14 @@ export class ApplicationDetailComponent {
     effect(() => {
       const id = this.id();
       untracked(() => this.store.load(id));
+    });
+  }
+
+  protected merge(request: MergeRequest): void {
+    this.store.merge(request, (success) => {
+      if (success) {
+        this.mergeWith.set(null);
+      }
     });
   }
 }

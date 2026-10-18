@@ -261,3 +261,26 @@ a.contact-item:hover {
 .sk-small {
   height: 180px;
 }
+
+.duplicate-hint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 12px 16px;
+  font-size: 14px;
+  background: var(--tm-yellow-surface);
+  border-left: 4px solid var(--tm-yellow-bar);
+}
+
+.duplicate-icon {
+  color: var(--tm-yellow-icon);
+}
+
+.duplicate-text {
+  flex: 1 1 320px;
+}
+
+.duplicate-docs {
+  color: var(--tm-ink-2);
+}

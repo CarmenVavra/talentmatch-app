@@ -174,4 +174,70 @@ describe('UploadDialogComponent', () => {
     (root.querySelector('.to-pipeline') as HTMLButtonElement).click();
     expect(closed).toBeTrue();
   });
+
+  it('shows the detected people and uploads them after confirmation', async () => {
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(UploadDialogComponent);
+    fixture.componentRef.setInput('job', makeJob());
+    await fixture.whenStable();
+    const root = fixture.nativeElement as HTMLElement;
+
+    const dataTransfer = new DataTransfer();
+    for (const name of ['Lebenslauf_Carmen_Gregor.pdf', 'Skillprofil_Carmen_Gregor.pdf']) {
+      dataTransfer.items.add(new File(['%PDF'], name, { type: 'application/pdf' }));
+    }
+    (root.querySelector('.dropzone') as HTMLElement).dispatchEvent(
+      new DragEvent('drop', { dataTransfer, cancelable: true }),
+    );
+    await fixture.whenStable();
+    expect(root.querySelector('.inspecting')).not.toBeNull();
+
+    http.expectOne('/api/jobs/1/applications/inspect').flush({
+      files: [
+        {
+          index: 0,
+          fileName: 'Lebenslauf_Carmen_Gregor.pdf',
+          type: 'RESUME',
+          firstName: 'Carmen',
+          lastName: 'Gregor',
+          email: null,
+          phone: null,
+          error: null,
+        },
+        {
+          index: 1,
+          fileName: 'Skillprofil_Carmen_Gregor.pdf',
+          type: 'RESUME',
+          firstName: 'Carmen',
+          lastName: 'Gregor',
+          email: null,
+          phone: null,
+          error: null,
+        },
+      ],
+      groups: [{ fileIndexes: [0, 1], match: 'NAME', needsReview: true }],
+    });
+    await fixture.whenStable();
+
+    expect(root.querySelector('#draft-title')?.textContent).toContain('2 Dateien');
+    expect(root.querySelector('#draft-title')?.textContent).toContain('1 Bewerbung');
+    expect(root.querySelector('.person-name')?.textContent).toContain('Carmen Gregor');
+    expect(root.querySelector('.match')?.textContent).toContain('bitte prüfen');
+    expect(root.querySelector('.person .field-error')?.textContent).toContain('mehrfach');
+    expect((root.querySelector('.submit-draft') as HTMLButtonElement).disabled).toBeTrue();
+
+    const typeSelect = root.querySelectorAll('.type-select')[1] as HTMLSelectElement;
+    typeSelect.value = 'SKILL_PROFILE';
+    typeSelect.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    expect(root.querySelector('.person .field-error')).toBeNull();
+
+    (root.querySelector('.submit-draft') as HTMLButtonElement).click();
+    await fixture.whenStable();
+    const upload = http.expectOne('/api/jobs/1/applications');
+    expect(((upload.request.body as FormData).get('skillProfile') as File).name).toBe(
+      'Skillprofil_Carmen_Gregor.pdf',
+    );
+    expect(root.querySelector('.file-name')?.textContent).toContain('Carmen Gregor');
+  });
 });

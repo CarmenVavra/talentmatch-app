@@ -1,0 +1,40 @@
+.moves {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.move {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  gap: 4px 10px;
+  align-items: center;
+}
+
+.move-file {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+
+.move-select {
+  min-height: 32px;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+.replaces {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--tm-yellow-fg);
+}
+
+.merge-problem {
+  display: block;
+  margin: 0;
+}

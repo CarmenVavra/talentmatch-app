@@ -11,11 +11,19 @@ import {
 } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
 
-import { Job } from '../../core/models/api.models';
+import { DocumentType, GroupMatch, Job } from '../../core/models/api.models';
 import { formatMegabytes } from '../../core/util/format';
 import { ScoreTone, scoreTone } from '../../core/util/score';
 import { ICONS } from '../../shared/icons';
-import { UploadItem, UploadStore } from './upload.store';
+import { DOCUMENT_TYPES, documentTypeLabel } from '../../core/util/document-type';
+import { DraftGroup, UploadItem, UploadStore, groupLabel, groupProblem } from './upload.store';
+
+const MATCH_LABELS: Record<GroupMatch, string> = {
+  EMAIL: 'gleiche E-Mail-Adresse',
+  PHONE: 'gleiche Telefonnummer',
+  NAME: 'gleicher Name',
+  NONE: '',
+};
 
 const STAGE_LABELS: Record<UploadItem['stage'], string> = {
   uploading: 'Wird hochgeladen …',
@@ -26,7 +34,10 @@ const STAGE_LABELS: Record<UploadItem['stage'], string> = {
   error: '',
 };
 
-/** Modal über der Pipeline: Drag-and-Drop-Upload von PDF-Lebensläufen mit Fortschritt je Datei. */
+/**
+ * Modal über der Pipeline: PDFs ablegen → Vorschau mit den erkannten Personen und Dokumentarten (korrigierbar)
+ * → je Person eine Bewerbung hochladen, mit Fortschritt.
+ */
 @Component({
   selector: 'app-upload-dialog',
   imports: [LucideAngularModule],
@@ -43,6 +54,10 @@ export class UploadDialogComponent implements AfterViewInit {
   readonly closed = output<void>();
 
   protected readonly zoneHot = signal(false);
+  protected readonly documentTypes = DOCUMENT_TYPES;
+  protected readonly typeLabel = documentTypeLabel;
+  protected readonly groupLabel = groupLabel;
+  protected readonly groupProblem = groupProblem;
   private readonly fileInput = viewChild.required<ElementRef<HTMLInputElement>>('fileInput');
   private readonly dialog = viewChild.required<ElementRef<HTMLElement>>('dialog');
 
@@ -82,6 +97,18 @@ export class UploadDialogComponent implements AfterViewInit {
     }
   }
 
+  protected matchLabel(group: DraftGroup): string {
+    return MATCH_LABELS[group.match];
+  }
+
+  protected onTypeChange(fileKey: number, select: HTMLSelectElement): void {
+    this.uploads.setType(fileKey, select.value as DocumentType);
+  }
+
+  protected onGroupChange(fileKey: number, select: HTMLSelectElement): void {
+    this.uploads.moveFile(fileKey, select.value === 'new' ? null : Number(select.value));
+  }
+
   protected stageLabel(item: UploadItem): string {
     return item.stage === 'error' ? (item.error ?? 'Fehler') : STAGE_LABELS[item.stage];
   }
@@ -94,7 +121,7 @@ export class UploadDialogComponent implements AfterViewInit {
   }
 
   protected size(item: UploadItem): string {
-    return formatMegabytes(item.file.size);
+    return formatMegabytes(item.sizeBytes);
   }
 
   protected scoreToneOf(item: UploadItem): ScoreTone {

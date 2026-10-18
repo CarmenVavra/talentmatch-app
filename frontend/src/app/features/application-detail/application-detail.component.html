@@ -15,6 +15,34 @@
       <span>{{ d.candidate.firstName }} {{ d.candidate.lastName }}</span>
     </nav>
 
+    @for (duplicate of store.duplicates(); track duplicate.id) {
+      <div class="duplicate-hint" role="status">
+        <lucide-icon class="duplicate-icon" [img]="icons.alert" [size]="18" aria-hidden="true" />
+        <div class="duplicate-text">
+          <strong>Mögliches Duplikat:</strong>{{ ' '
+          }}<a [routerLink]="['/applications', duplicate.id]"
+            >{{ duplicate.firstName }} {{ duplicate.lastName }}</a
+          >
+          (eingegangen {{ duplicate.createdAt | dayMonth }}, {{ duplicateReason(duplicate) }})
+          @if (duplicate.documents.length) {
+            <span class="duplicate-docs">
+              · Unterlagen:
+              @for (doc of duplicate.documents; track doc.type; let last = $last) {
+                {{ doc.fileName }}{{ last ? '' : ', ' }}
+              }
+            </span>
+          }
+        </div>
+        <button
+          type="button"
+          class="btn btn-secondary merge-button"
+          (click)="mergeWith.set(duplicate)"
+        >
+          Zusammenführen
+        </button>
+      </div>
+    }
+
     <!-- Header-Panel -->
     <div class="header-panel">
       <div class="person">
@@ -208,4 +236,16 @@
       </div>
     </div>
   </div>
+}
+
+@if (mergeWith(); as source) {
+  @if (detail(); as target) {
+    <app-merge-dialog
+      [target]="target"
+      [source]="source"
+      [busy]="store.merging()"
+      (confirmed)="merge($event)"
+      (cancelled)="mergeWith.set(null)"
+    />
+  }
 }

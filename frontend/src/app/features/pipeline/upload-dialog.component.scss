@@ -162,3 +162,128 @@
 .to-pipeline {
   min-width: 140px;
 }
+
+/* Vorschau: erkannte Personen */
+.inspecting {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--tm-gray);
+}
+
+.inspecting-bar {
+  display: block;
+  height: 6px;
+}
+
+.draft {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.draft-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+
+  h4 {
+    margin: 0;
+  }
+}
+
+.draft-hint {
+  font-size: 12px;
+}
+
+.person {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--tm-blue-tint-3);
+  border-left: 4px solid var(--tm-lightblue);
+
+  &.review {
+    background: var(--tm-yellow-surface);
+    border-left-color: var(--tm-yellow-bar);
+  }
+
+  &.invalid {
+    background: var(--tm-red-surface);
+    border-left-color: var(--tm-red-bar);
+  }
+}
+
+.person-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.person-name {
+  font-size: 15px;
+}
+
+.match {
+  font-size: 12px;
+  color: var(--tm-gray);
+
+  &.match-review {
+    color: var(--tm-yellow-fg);
+    font-weight: 700;
+  }
+}
+
+.draft-files {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.draft-file {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) 130px 150px auto;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+
+  @media (max-width: 560px) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+
+    .select {
+      grid-column: 2 / -1;
+    }
+  }
+}
+
+.draft-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.select {
+  min-height: 32px;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+
+.draft-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.file-list {
+  font-size: 12px;
+  color: var(--tm-gray);
+}

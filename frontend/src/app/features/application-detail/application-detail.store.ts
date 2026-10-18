@@ -12,7 +12,13 @@ import {
 } from 'rxjs';
 
 import { ApplicationApiService } from '../../core/api/application-api.service';
-import { ApplicationDetail, ApplicationStatus, DocumentKind } from '../../core/models/api.models';
+import {
+  ApplicationDetail,
+  ApplicationStatus,
+  DocumentKind,
+  Duplicate,
+  MergeRequest,
+} from '../../core/models/api.models';
 import { JobStore } from '../../core/state/job.store';
 import { ToastService } from '../../core/state/toast.service';
 import { errorMessage } from '../../core/util/http-error';
@@ -50,6 +56,9 @@ export class ApplicationDetailStore {
   readonly analyzeError = signal<string | null>(null);
   readonly generating = signal(false);
   readonly notesState = signal<SaveState>('idle');
+  /** Andere Bewerbungen derselben Person auf diese Stelle. */
+  readonly duplicates = signal<Duplicate[]>([]);
+  readonly merging = signal(false);
   /** Blob-URLs der geladenen Original-PDFs je Unterlage. */
   readonly documentUrls = signal<ByDocument<string>>({});
   readonly documentLoading = signal<ByDocument<boolean>>({});
@@ -92,6 +101,7 @@ export class ApplicationDetailStore {
           if (detail.unread) {
             this.markSeen(detail.id);
           }
+          this.loadDuplicates(detail.id);
         },
         error: (err: unknown) => {
           this.error.set(errorMessage(err, 'Die Bewerbung konnte nicht geladen werden.'));
@@ -213,6 +223,53 @@ export class ApplicationDetailStore {
           this.documentErrors.update((errors) => ({ ...errors, [kind]: message }));
           this.documentLoading.update((loading) => ({ ...loading, [kind]: false }));
         },
+      });
+  }
+
+  /**
+   * Übernimmt ein Duplikat in diese Bewerbung. Wurden Unterlagen übernommen, startet die KI-Analyse neu.
+   * {@code done} meldet, ob es geklappt hat (z. B. um den Dialog zu schließen).
+   */
+  merge(request: MergeRequest, done: (success: boolean) => void): void {
+    const current = this.detail();
+    if (!current || this.merging()) {
+      return;
+    }
+    this.merging.set(true);
+    this.api
+      .merge(current.id, request)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (detail) => {
+          this.revokeDocuments();
+          this.detail.set(detail);
+          this.duplicates.update((list) => list.filter((d) => d.id !== request.sourceId));
+          this.merging.set(false);
+          this.toast.success('Die Bewerbungen wurden zusammengeführt.');
+          done(true);
+          if (request.documents.length > 0) {
+            this.analyze();
+          }
+        },
+        error: (err: unknown) => {
+          this.merging.set(false);
+          this.toast.error(
+            errorMessage(err, 'Die Bewerbungen konnten nicht zusammengeführt werden.'),
+          );
+          done(false);
+        },
+      });
+  }
+
+  private loadDuplicates(id: number): void {
+    this.duplicates.set([]);
+    this.api
+      .duplicates(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (list) => this.duplicates.set(list),
+        // Der Hinweis ist eine Hilfe – ohne ihn bleibt die Seite voll nutzbar.
+        error: () => this.duplicates.set([]),
       });
   }
 
