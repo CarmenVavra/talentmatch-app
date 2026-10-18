@@ -30,6 +30,8 @@ Bewerber:innen bewerben sich über ein eigenes Portal und verfolgen dort den Sta
 - Offene Stellen mit Detailseite, Bewerbung mit Lebenslauf, Skill-Profil und Anschreiben
 - Statusverfolgung unter „Meine Bewerbungen“ (bewusst ohne Score oder KI-Bewertung)
 - E-Mail mit Eingangsbestätigung und bei jeder Statusänderung (Interview, Zusage, Absage)
+- Datenschutz: Hinweise mit Bestätigung bei der Registrierung, Bewerbung zurückziehen, Konto löschen;
+  Absagen ohne Evidenz werden nach 6 Monaten automatisch gelöscht
 
 ## Screenshots
 
@@ -50,7 +52,7 @@ Bewerber:innen bewerben sich über ein eigenes Portal und verfolgen dort den Sta
 | KI | Spring AI 2 mit OpenAI GPT-4o, Structured Output über `BeanOutputConverter` |
 | PDF | Apache Tika zur Text-Extraktion, Original-PDF für die Vorschau |
 | Datenbank | H2 lokal (ohne Installation), PostgreSQL per Profil bzw. Docker |
-| Qualität | 138 Backend-Tests (JUnit 5, `@WebMvcTest`, `@SpringBootTest`), 168 Frontend-Tests, ESLint, Prettier, Checkstyle, GitHub Actions |
+| Qualität | 145 Backend-Tests (JUnit 5, `@WebMvcTest`, `@SpringBootTest`), 176 Frontend-Tests, ESLint, Prettier, Checkstyle, GitHub Actions |
 
 ## Schnellstart
 

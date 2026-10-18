@@ -72,6 +72,21 @@ Bewerbungen“).
 Der Menüpunkt **„Evidenz“** listet alle Einträge über alle Stellen. **„Bewerbung löschen“** entfernt eine
 Bewerbung endgültig, inklusive Unterlagen, KI-Analyse und E-Mails.
 
+## Datenschutz
+
+- **Datenschutzhinweise** unter `/datenschutz` (öffentlich, verlinkt bei Login und Registrierung sowie im
+  Konto-Menü der Bewerber:innen). Bei der Registrierung müssen sie bestätigt werden; der Zeitpunkt wird am
+  Konto gespeichert. Der Text ist ein Muster und vor produktivem Einsatz um verantwortliche Stelle,
+  Datenschutzbeauftragte und Rechtsgrundlagen zu ergänzen.
+- **Bewerbung zurückziehen:** unter „Meine Bewerbungen“ – die Bewerbung wird mit Unterlagen, KI-Analyse und
+  E-Mails sofort gelöscht; danach ist eine neue Bewerbung auf die Stelle möglich.
+- **Konto löschen:** Konto-Menü → „Konto löschen“ (mit Passwort-Bestätigung) – löscht das Konto und alle
+  Bewerbungen des Kontos. Von HR hochgeladene Bewerbungen ohne Kontoverknüpfung bleiben davon unberührt.
+- **Automatische Löschung:** Absagen ohne Evidenz werden nach 6 Monaten gelöscht
+  (`talentmatch.privacy.rejected-retention`, geprüft stündlich und beim Start). Die Frist beginnt mit der
+  Absage; wird eine Bewerbung aus „Absage“ zurückgeholt, entfällt sie. Für bereits bestehende Absagen beginnt
+  sie beim ersten Start dieser Version.
+
 ## E-Mails und Postausgang
 
 Bewerber:innen **mit Portal-Konto** erhalten automatisch E-Mails:
