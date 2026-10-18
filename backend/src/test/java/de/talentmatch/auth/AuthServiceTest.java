@@ -6,7 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +39,8 @@ class AuthServiceTest {
         repository = mock(UserAccountRepository.class);
         TokenService tokenService = mock(TokenService.class);
         when(tokenService.issue(any())).thenReturn(new TokenService.IssuedToken("jwt", Instant.EPOCH));
-        service = new AuthService(repository, encoder, tokenService);
+        service = new AuthService(repository, encoder, tokenService,
+                Clock.fixed(Instant.parse("2026-10-18T08:00:00Z"), ZoneOffset.UTC));
         user = new UserAccount(EMAIL, encoder.encode("alt-passwort"), "Katrin", "Vogel", "People & Culture",
                 Role.HR_MANAGER);
         when(repository.findByEmailIgnoreCase(EMAIL)).thenReturn(Optional.of(user));
@@ -57,11 +63,16 @@ class AuthServiceTest {
 
     @Test
     void registerCreatesApplicantAccountAndLogsIn() {
-        when(repository.save(any(UserAccount.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        List<UserAccount> saved = new ArrayList<>();
+        when(repository.save(any(UserAccount.class))).thenAnswer(invocation -> {
+            saved.add(invocation.getArgument(0));
+            return invocation.getArgument(0);
+        });
 
         LoginResponse response = service.register(
-                new RegisterRequest(" Max ", "Mustermann", " Max@Example.org ", "geheim-123"));
+                new RegisterRequest(" Max ", "Mustermann", " Max@Example.org ", "geheim-123", true));
 
+        assertThat(saved.getFirst().getPrivacyAcceptedAt()).contains(LocalDateTime.of(2026, 10, 18, 8, 0));
         assertThat(response.token()).isEqualTo("jwt");
         assertThat(response.user().role()).isEqualTo(Role.APPLICANT);
         assertThat(response.user().email()).isEqualTo("max@example.org");
@@ -70,7 +81,7 @@ class AuthServiceTest {
 
     @Test
     void registerRejectsExistingEmail() {
-        assertThatThrownBy(() -> service.register(new RegisterRequest("K", "V", EMAIL, "geheim-123")))
+        assertThatThrownBy(() -> service.register(new RegisterRequest("K", "V", EMAIL, "geheim-123", true)))
                 .isInstanceOf(BusinessRuleException.class);
     }
 

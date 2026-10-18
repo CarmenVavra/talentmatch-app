@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "talentmatch")
 public record TalentMatchProperties(Cors cors, Jwt jwt, Upload upload, Seed seed, Mail mail,
-                                    TalentPool talentPool) {
+                                    TalentPool talentPool, Privacy privacy) {
 
     public record Cors(List<String> allowedOrigins) {
     }
@@ -31,6 +31,12 @@ public record TalentMatchProperties(Cors cors, Jwt jwt, Upload upload, Seed seed
      * Evidenz: Antwortfrist, Erinnerung nach und Aufbewahrungsdauer nach Zustimmung.
      */
     public record TalentPool(Duration responsePeriod, Duration reminderAfter, Duration retention) {
+    }
+
+    /**
+     * Datenschutz: Aufbewahrungsdauer abgesagter Bewerbungen ohne Evidenz.
+     */
+    public record Privacy(Duration rejectedRetention) {
     }
 
     public record Seed(

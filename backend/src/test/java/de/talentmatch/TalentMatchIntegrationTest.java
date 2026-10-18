@@ -170,7 +170,7 @@ class TalentMatchIntegrationTest {
         String register = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"firstName":"Lea","lastName":"Neu","email":"lea.neu@example.org",
-                                 "password":"bewerbung-2026"}
+                                 "password":"bewerbung-2026","privacyAccepted":true}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.user.role").value("APPLICANT"))
@@ -228,7 +228,7 @@ class TalentMatchIntegrationTest {
         String register = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"firstName":"Tom","lastName":"Unterlagen","email":"tom.unterlagen@example.org",
-                                 "password":"bewerbung-2026"}
+                                 "password":"bewerbung-2026","privacyAccepted":true}
                                 """))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
@@ -326,7 +326,7 @@ class TalentMatchIntegrationTest {
         String register = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"firstName":"Ida","lastName":"Loeschtest","email":"ida.loeschtest@example.org",
-                                 "password":"bewerbung-2026"}
+                                 "password":"bewerbung-2026","privacyAccepted":true}
                                 """))
                 .andReturn().getResponse().getContentAsString();
         String token = JsonPath.read(register, "$.token");
@@ -732,6 +732,68 @@ class TalentMatchIntegrationTest {
     }
 
     @Test
+    void applicantWithdrawsOnlyOwnApplications() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        String ownerToken = register("wanda.withdraw@example.org");
+        Integer id = portalApply(ownerToken, jobId);
+        String otherToken = register("otto.other@example.org");
+
+        mockMvc.perform(delete("/api/applicant/applications/{id}", id)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(otherToken)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(delete("/api/applicant/applications/{id}", id)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(ownerToken)))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(ownerToken)))
+                .andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(get("/api/applications/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+        assertThat(outboxSubjects(hrToken, id)).isEmpty();
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
+    void applicantDeletesAccountWithAllApplications() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        String token = register("dora.delete@example.org");
+        Integer id = portalApply(token, jobId);
+
+        mockMvc.perform(post("/api/applicant/account/delete").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"falsch-123\"}"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/applicant/account/delete").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"bewerbung-2026\"}"))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("dora.delete@example.org", "bewerbung-2026")))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/applications/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+        assertThat(outboxSubjects(hrToken, id)).isEmpty();
+        mockMvc.perform(post("/api/applicant/account/delete").header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"x\"}"))
+                .andExpect(status().isForbidden());
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
+    void registrationRequiresThePrivacyNotice() throws Exception {
+        mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Pia","lastName":"Privat","email":"pia@example.org",
+                                 "password":"bewerbung-2026","privacyAccepted":false}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.privacyAccepted").exists());
+    }
+
+    @Test
     void seededApplicantHasDemoApplications() throws Exception {
         String token = login(applicantEmail, applicantPassword);
         mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(token)))
@@ -746,7 +808,7 @@ class TalentMatchIntegrationTest {
     void registrationRejectsExistingEmail() throws Exception {
         mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"firstName\":\"K\",\"lastName\":\"V\",\"email\":\"" + hrEmail
-                                + "\",\"password\":\"irgendwas-123\"}"))
+                                + "\",\"password\":\"irgendwas-123\",\"privacyAccepted\":true}"))
                 .andExpect(status().isConflict());
     }
 
@@ -850,7 +912,8 @@ class TalentMatchIntegrationTest {
     private String register(String email) throws Exception {
         String response = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"firstName":"Anna","lastName":"Berg","email":"%s","password":"bewerbung-2026"}
+                                {"firstName":"Anna","lastName":"Berg","email":"%s","password":"bewerbung-2026",
+                                 "privacyAccepted":true}
                                 """.formatted(email)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();

@@ -6,16 +6,19 @@ import java.util.Optional;
 import java.util.Set;
 
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import de.talentmatch.applicant.api.MyApplicationDto;
 import de.talentmatch.applicant.api.OpenJobDto;
 import de.talentmatch.application.Application;
+import de.talentmatch.application.ApplicationDeletionService;
 import de.talentmatch.application.ApplicationRepository;
 import de.talentmatch.auth.UserAccount;
 import de.talentmatch.auth.UserAccountRepository;
 import de.talentmatch.common.exception.BusinessRuleException;
+import de.talentmatch.common.exception.InvalidPasswordException;
 import de.talentmatch.common.exception.ResourceNotFoundException;
 import de.talentmatch.job.JobPosition;
 import de.talentmatch.job.JobPositionRepository;
@@ -34,15 +37,20 @@ public class ApplicantService {
     private final JobPositionRepository jobRepository;
     private final ApplicationRepository applicationRepository;
     private final ResumeUploadService uploadService;
+    private final ApplicationDeletionService deletionService;
+    private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher events;
 
     public ApplicantService(UserAccountRepository userRepository, JobPositionRepository jobRepository,
                             ApplicationRepository applicationRepository, ResumeUploadService uploadService,
+                            ApplicationDeletionService deletionService, PasswordEncoder passwordEncoder,
                             ApplicationEventPublisher events) {
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.applicationRepository = applicationRepository;
         this.uploadService = uploadService;
+        this.deletionService = deletionService;
+        this.passwordEncoder = passwordEncoder;
         this.events = events;
     }
 
@@ -88,6 +96,34 @@ public class ApplicantService {
         Application application = uploadService.submitForApplicant(job, applicant, documents);
         events.publishEvent(new ApplicationSubmittedEvent(application.getId()));
         return toMyApplication(application);
+    }
+
+    /**
+     * Zieht eine eigene Bewerbung zurück: Sie wird mit allen Unterlagen, der KI-Analyse und den E-Mails gelöscht.
+     */
+    @Transactional
+    public void withdraw(String email, Long applicationId) {
+        UserAccount applicant = loadAccount(email);
+        Application application = applicationRepository.findById(applicationId)
+                .filter(candidate -> candidate.getApplicantAccount()
+                        .map(account -> account.getId().equals(applicant.getId()))
+                        .orElse(false))
+                .orElseThrow(() -> new ResourceNotFoundException("Bewerbung", applicationId));
+        deletionService.delete(application);
+    }
+
+    /**
+     * Löscht das eigene Konto samt allen Bewerbungen. Zur Sicherheit muss das Passwort bestätigt werden.
+     */
+    @Transactional
+    public void deleteAccount(String email, String password) {
+        UserAccount applicant = loadAccount(email);
+        if (!passwordEncoder.matches(password, applicant.getPasswordHash())) {
+            throw new InvalidPasswordException("Das Passwort ist nicht korrekt.");
+        }
+        deletionService.deleteAll(applicationRepository.findByApplicantAccountIdOrderByCreatedAtDesc(
+                applicant.getId()));
+        userRepository.delete(applicant);
     }
 
     private UserAccount loadAccount(String email) {

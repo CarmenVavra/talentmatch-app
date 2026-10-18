@@ -18,11 +18,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import de.talentmatch.applicant.api.MyApplicationDto;
 import de.talentmatch.applicant.api.OpenJobDto;
 import de.talentmatch.application.Application;
+import de.talentmatch.application.ApplicationDeletionService;
 import de.talentmatch.application.ApplicationRepository;
 import de.talentmatch.application.ApplicationStatus;
 import de.talentmatch.auth.Role;
@@ -55,7 +57,8 @@ class ApplicantServiceTest {
         jobRepository = mock(JobPositionRepository.class);
         uploadService = mock(ResumeUploadService.class);
         events = mock(ApplicationEventPublisher.class);
-        service = new ApplicantService(userRepository, jobRepository, applicationRepository, uploadService, events);
+        service = new ApplicantService(userRepository, jobRepository, applicationRepository, uploadService,
+                mock(ApplicationDeletionService.class), mock(PasswordEncoder.class), events);
 
         account = new UserAccount(EMAIL, "hash", "Max", "Mustermann", null, Role.APPLICANT);
         ReflectionTestUtils.setField(account, "id", 5L);

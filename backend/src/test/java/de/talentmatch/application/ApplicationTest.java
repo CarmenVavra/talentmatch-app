@@ -50,6 +50,24 @@ class ApplicationTest {
         assertThat(application.isUnread()).isFalse();
     }
 
+    @Test
+    void rejectionStartsTheRetentionPeriodOnlyOnce() {
+        Application application = portalApplication();
+        application.changeStatus(ApplicationStatus.REJECTED, CREATED.plusDays(1));
+        application.changeStatus(ApplicationStatus.REJECTED, CREATED.plusDays(5));
+
+        assertThat(application.getRejectedAt()).contains(CREATED.plusDays(1));
+    }
+
+    @Test
+    void reopeningARejectionClearsTheRetentionPeriod() {
+        Application application = portalApplication();
+        application.changeStatus(ApplicationStatus.REJECTED, CREATED.plusDays(1));
+        application.changeStatus(ApplicationStatus.INTERVIEW, CREATED.plusDays(2));
+
+        assertThat(application.getRejectedAt()).isEmpty();
+    }
+
     private static Application portalApplication() {
         Application application = new Application(job(), new Candidate("Max", "Mustermann"), CREATED);
         application.setApplicantAccount(

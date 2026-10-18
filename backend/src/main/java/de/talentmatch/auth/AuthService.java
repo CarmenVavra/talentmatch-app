@@ -1,5 +1,7 @@
 package de.talentmatch.auth;
 
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -21,12 +23,14 @@ public class AuthService {
     private final UserAccountRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final Clock clock;
 
     public AuthService(UserAccountRepository userRepository, PasswordEncoder passwordEncoder,
-                       TokenService tokenService) {
+                       TokenService tokenService, Clock clock) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -39,7 +43,8 @@ public class AuthService {
     }
 
     /**
-     * Legt ein Bewerber-Konto an (immer Rolle APPLICANT) und meldet es direkt an.
+     * Legt ein Bewerber-Konto an (immer Rolle APPLICANT), vermerkt die Bestätigung der Datenschutzhinweise und
+     * meldet es direkt an.
      */
     @Transactional
     public LoginResponse register(RegisterRequest request) {
@@ -47,8 +52,10 @@ public class AuthService {
         if (userRepository.findByEmailIgnoreCase(email).isPresent()) {
             throw new BusinessRuleException("Für diese E-Mail-Adresse existiert bereits ein Konto.");
         }
-        UserAccount user = userRepository.save(new UserAccount(email, passwordEncoder.encode(request.password()),
-                request.firstName().trim(), request.lastName().trim(), null, Role.APPLICANT));
+        UserAccount account = new UserAccount(email, passwordEncoder.encode(request.password()),
+                request.firstName().trim(), request.lastName().trim(), null, Role.APPLICANT);
+        account.acceptPrivacy(LocalDateTime.now(clock));
+        UserAccount user = userRepository.save(account);
         TokenService.IssuedToken token = tokenService.issue(user);
         return new LoginResponse(token.value(), token.expiresAt(), UserDto.from(user));
     }

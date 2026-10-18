@@ -53,6 +53,9 @@ talentmatch:
     response-period: 14d
     reminder-after: 7d
     retention: 730d
+  privacy:
+    # Absagen ohne Evidenz werden nach dieser Frist automatisch gelöscht
+    rejected-retention: 180d
   seed:
     # Demo-Daten (Stellen, Bewerbungen, KI-Analysen) und Demo-Benutzer beim ersten Start anlegen.
     enabled: true

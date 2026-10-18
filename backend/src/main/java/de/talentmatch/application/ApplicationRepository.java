@@ -6,6 +6,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -78,6 +79,25 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
             where a.talentPool.status = de.talentmatch.talentpool.TalentPoolStatus.CONFIRMED
               and a.talentPool.expiresAt < :now""")
     List<Application> findExpiredTalentPoolConsents(@Param("now") LocalDateTime now);
+
+    /**
+     * Absagen ohne erfassten Fristbeginn (z. B. aus älteren Datenbeständen) beginnen ihre Frist jetzt.
+     */
+    @Modifying
+    @Query("""
+            update Application a set a.rejectedAt = :now
+            where a.status = de.talentmatch.application.ApplicationStatus.REJECTED and a.rejectedAt is null""")
+    int startMissingRejectionPeriods(@Param("now") LocalDateTime now);
+
+    /**
+     * Absagen ohne Evidenz, deren Aufbewahrungsfrist vor {@code cutoff} begonnen hat.
+     */
+    @Query("""
+            select a from Application a
+            where a.status = de.talentmatch.application.ApplicationStatus.REJECTED
+              and a.talentPool.status is null
+              and a.rejectedAt < :cutoff""")
+    List<Application> findRejectedBefore(@Param("cutoff") LocalDateTime cutoff);
 
     @EntityGraph(attributePaths = {"resumeDocument"})
     Optional<Application> findWithResumeById(Long id);

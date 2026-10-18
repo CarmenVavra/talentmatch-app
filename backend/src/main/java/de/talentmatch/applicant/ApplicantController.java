@@ -2,19 +2,24 @@ package de.talentmatch.applicant;
 
 import java.util.List;
 
+import jakarta.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import de.talentmatch.applicant.api.DeleteAccountRequest;
 import de.talentmatch.applicant.api.MyApplicationDto;
 import de.talentmatch.applicant.api.OpenJobDto;
 import de.talentmatch.common.exception.ResourceNotFoundException;
@@ -57,5 +62,20 @@ public class ApplicantController {
                                   @RequestPart(name = "coverLetter", required = false) MultipartFile coverLetter) {
         return applicantService.apply(jwt.getSubject(), jobId,
                 ApplicantDocuments.of(file, skillProfile, coverLetter));
+    }
+
+    @DeleteMapping("/applications/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void withdraw(@AuthenticationPrincipal Jwt jwt, @PathVariable Long id) {
+        applicantService.withdraw(jwt.getSubject(), id);
+    }
+
+    /**
+     * Löscht das Konto samt allen Bewerbungen (POST, weil das Passwort im Body mitgeschickt wird).
+     */
+    @PostMapping("/account/delete")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteAccount(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody DeleteAccountRequest request) {
+        applicantService.deleteAccount(jwt.getSubject(), request.password());
     }
 }

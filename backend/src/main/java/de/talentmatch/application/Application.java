@@ -88,6 +88,9 @@ public class Application {
     /** Zeitpunkt, zu dem HR die Bewerbung erstmals geöffnet oder bearbeitet hat. */
     private LocalDateTime seenByHrAt;
 
+    /** Beginn der Aufbewahrungsfrist nach einer Absage (null = nicht abgesagt bzw. noch nicht erfasst). */
+    private LocalDateTime rejectedAt;
+
     /** Evidenz-Anfrage bzw. -Einwilligung (null = nicht in Evidenz). */
     @Embedded
     private TalentPoolConsent talentPool;
@@ -153,13 +156,30 @@ public class Application {
     }
 
     /**
-     * Ändert den Status. Wird eine Bewerbung aus „Absage“ zurückgeholt, ist eine Evidenz-Anfrage hinfällig.
+     * Ändert den Status. Wird eine Bewerbung aus „Absage“ zurückgeholt, ist eine Evidenz-Anfrage hinfällig und die
+     * Aufbewahrungsfrist der Absage entfällt.
      */
     public void setStatus(ApplicationStatus status) {
         this.status = status;
         if (status != ApplicationStatus.REJECTED) {
             this.talentPool = null;
+            this.rejectedAt = null;
         }
+    }
+
+    /**
+     * Ändert den Status und startet bei einer neuen Absage die Aufbewahrungsfrist.
+     */
+    public void changeStatus(ApplicationStatus status, LocalDateTime now) {
+        boolean newlyRejected = status == ApplicationStatus.REJECTED && this.status != ApplicationStatus.REJECTED;
+        setStatus(status);
+        if (newlyRejected) {
+            this.rejectedAt = now;
+        }
+    }
+
+    public Optional<LocalDateTime> getRejectedAt() {
+        return Optional.ofNullable(rejectedAt);
     }
 
     /**

@@ -66,8 +66,9 @@ public class ApplicationService {
     public ApplicationSummaryDto updateStatus(Long id, ApplicationStatus status) {
         Application application = loadWithDetails(id);
         ApplicationStatus previous = application.getStatus();
-        application.setStatus(status);
-        application.markSeenByHr(LocalDateTime.now(clock));
+        LocalDateTime now = LocalDateTime.now(clock);
+        application.changeStatus(status, now);
+        application.markSeenByHr(now);
         if (previous != status) {
             events.publishEvent(new ApplicationStatusChangedEvent(id, previous, status));
         }

@@ -72,7 +72,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"firstName":"Max","lastName":"Mustermann","email":"max@example.org",
-                                 "password":"geheim-123"}
+                                 "password":"geheim-123","privacyAccepted":true}
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.user.role").value("APPLICANT"));
@@ -86,7 +86,8 @@ class AuthControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors.firstName").exists())
                 .andExpect(jsonPath("$.errors.email").exists())
-                .andExpect(jsonPath("$.errors.password").exists());
+                .andExpect(jsonPath("$.errors.password").exists())
+                .andExpect(jsonPath("$.errors.privacyAccepted").exists());
     }
 
     @Test

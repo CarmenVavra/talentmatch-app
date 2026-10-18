@@ -99,7 +99,8 @@ class MailServiceTest {
     private MailDispatcher dispatcher(JavaMailSender mailSender) {
         TalentMatchProperties properties = new TalentMatchProperties(null, null, null, null,
                 new TalentMatchProperties.Mail("noreply@talentmatch.local", "http://localhost:4200"),
-                new TalentMatchProperties.TalentPool(Duration.ofDays(14), Duration.ofDays(7), Duration.ofDays(730)));
+                new TalentMatchProperties.TalentPool(Duration.ofDays(14), Duration.ofDays(7), Duration.ofDays(730)),
+                new TalentMatchProperties.Privacy(Duration.ofDays(180)));
         return new MailDispatcher(repository, provider(mailSender),
                 new TransactionTemplate(mock(PlatformTransactionManager.class)), properties);
     }

@@ -1,5 +1,8 @@
 package de.talentmatch.auth;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -37,6 +40,9 @@ public class UserAccount {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 32)
     private Role role;
+
+    /** Zeitpunkt, zu dem die Bewerber:in bei der Registrierung die Datenschutzhinweise bestätigt hat. */
+    private LocalDateTime privacyAcceptedAt;
 
     protected UserAccount() {
     }
@@ -81,5 +87,13 @@ public class UserAccount {
 
     public Role getRole() {
         return role;
+    }
+
+    public void acceptPrivacy(LocalDateTime acceptedAt) {
+        this.privacyAcceptedAt = acceptedAt;
+    }
+
+    public Optional<LocalDateTime> getPrivacyAcceptedAt() {
+        return Optional.ofNullable(privacyAcceptedAt);
     }
 }
