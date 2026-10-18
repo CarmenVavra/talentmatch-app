@@ -39,7 +39,7 @@ class AuthServiceTest {
         repository = mock(UserAccountRepository.class);
         TokenService tokenService = mock(TokenService.class);
         when(tokenService.issue(any())).thenReturn(new TokenService.IssuedToken("jwt", Instant.EPOCH));
-        service = new AuthService(repository, encoder, tokenService,
+        service = new AuthService(repository, encoder, tokenService, mock(LoginAttemptService.class),
                 Clock.fixed(Instant.parse("2026-10-18T08:00:00Z"), ZoneOffset.UTC));
         user = new UserAccount(EMAIL, encoder.encode("alt-passwort"), "Katrin", "Vogel", "People & Culture",
                 Role.HR_MANAGER);

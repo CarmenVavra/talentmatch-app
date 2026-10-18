@@ -46,7 +46,7 @@ class RetentionServiceTest {
     @BeforeEach
     void setUp() {
         TalentMatchProperties properties = new TalentMatchProperties(null, null, null, null, null, null,
-                new TalentMatchProperties.Privacy(Duration.ofDays(180)));
+                new TalentMatchProperties.Privacy(Duration.ofDays(180)), null);
         service = new RetentionService(applicationRepository,
                 new ApplicationDeletionService(applicationRepository, mailRepository), properties);
         job = entityManager.persist(new JobPosition("Data Engineer", "Data", "Mid", "Hamburg", null,

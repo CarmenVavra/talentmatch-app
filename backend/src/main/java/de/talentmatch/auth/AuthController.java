@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 import de.talentmatch.auth.api.ChangePasswordRequest;
 import de.talentmatch.auth.api.LoginRequest;
 import de.talentmatch.auth.api.LoginResponse;
+import de.talentmatch.auth.api.PasswordResetConfirmRequest;
+import de.talentmatch.auth.api.PasswordResetRequest;
 import de.talentmatch.auth.api.RegisterRequest;
 import de.talentmatch.auth.api.UserDto;
 import de.talentmatch.common.exception.ResourceNotFoundException;
@@ -24,9 +26,11 @@ import de.talentmatch.common.exception.ResourceNotFoundException;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/login")
@@ -50,5 +54,20 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void changePassword(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(jwt.getSubject(), request.currentPassword(), request.newPassword());
+    }
+
+    /**
+     * Antwortet immer mit 204 – auch wenn es zur Adresse kein Konto gibt.
+     */
+    @PostMapping("/password-reset/request")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void requestPasswordReset(@Valid @RequestBody PasswordResetRequest request) {
+        passwordResetService.requestReset(request.email());
+    }
+
+    @PostMapping("/password-reset/confirm")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void confirmPasswordReset(@Valid @RequestBody PasswordResetConfirmRequest request) {
+        passwordResetService.resetPassword(request.token(), request.newPassword());
     }
 }

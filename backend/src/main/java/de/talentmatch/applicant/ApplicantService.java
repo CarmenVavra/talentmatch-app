@@ -15,6 +15,7 @@ import de.talentmatch.applicant.api.OpenJobDto;
 import de.talentmatch.application.Application;
 import de.talentmatch.application.ApplicationDeletionService;
 import de.talentmatch.application.ApplicationRepository;
+import de.talentmatch.auth.PasswordResetTokenRepository;
 import de.talentmatch.auth.UserAccount;
 import de.talentmatch.auth.UserAccountRepository;
 import de.talentmatch.common.exception.BusinessRuleException;
@@ -39,18 +40,20 @@ public class ApplicantService {
     private final ResumeUploadService uploadService;
     private final ApplicationDeletionService deletionService;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordResetTokenRepository resetTokenRepository;
     private final ApplicationEventPublisher events;
 
     public ApplicantService(UserAccountRepository userRepository, JobPositionRepository jobRepository,
                             ApplicationRepository applicationRepository, ResumeUploadService uploadService,
                             ApplicationDeletionService deletionService, PasswordEncoder passwordEncoder,
-                            ApplicationEventPublisher events) {
+                            PasswordResetTokenRepository resetTokenRepository, ApplicationEventPublisher events) {
         this.userRepository = userRepository;
         this.jobRepository = jobRepository;
         this.applicationRepository = applicationRepository;
         this.uploadService = uploadService;
         this.deletionService = deletionService;
         this.passwordEncoder = passwordEncoder;
+        this.resetTokenRepository = resetTokenRepository;
         this.events = events;
     }
 
@@ -123,6 +126,7 @@ public class ApplicantService {
         }
         deletionService.deleteAll(applicationRepository.findByApplicantAccountIdOrderByCreatedAtDesc(
                 applicant.getId()));
+        resetTokenRepository.deleteByUser(applicant);
         userRepository.delete(applicant);
     }
 

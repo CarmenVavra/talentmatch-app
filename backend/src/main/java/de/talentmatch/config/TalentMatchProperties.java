@@ -10,7 +10,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @ConfigurationProperties(prefix = "talentmatch")
 public record TalentMatchProperties(Cors cors, Jwt jwt, Upload upload, Seed seed, Mail mail,
-                                    TalentPool talentPool, Privacy privacy) {
+                                    TalentPool talentPool, Privacy privacy,
+                                    Security security) {
 
     public record Cors(List<String> allowedOrigins) {
     }
@@ -37,6 +38,12 @@ public record TalentMatchProperties(Cors cors, Jwt jwt, Upload upload, Seed seed
      * Datenschutz: Aufbewahrungsdauer abgesagter Bewerbungen ohne Evidenz.
      */
     public record Privacy(Duration rejectedRetention) {
+    }
+
+    /**
+     * Schutz der Anmeldung: Sperre nach zu vielen Fehlversuchen und Gültigkeit der Links zum Zurücksetzen.
+     */
+    public record Security(int maxLoginFailures, Duration loginLockDuration, Duration passwordResetValidity) {
     }
 
     public record Seed(

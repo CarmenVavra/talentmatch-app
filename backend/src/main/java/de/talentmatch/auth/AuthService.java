@@ -23,21 +23,32 @@ public class AuthService {
     private final UserAccountRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final LoginAttemptService loginAttempts;
     private final Clock clock;
 
     public AuthService(UserAccountRepository userRepository, PasswordEncoder passwordEncoder,
-                       TokenService tokenService, Clock clock) {
+                       TokenService tokenService, LoginAttemptService loginAttempts, Clock clock) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
+        this.loginAttempts = loginAttempts;
         this.clock = clock;
     }
 
+    /**
+     * Meldet an. Nach zu vielen Fehlversuchen ist die Anmeldung für die Adresse vorübergehend gesperrt
+     * (auch für unbekannte Adressen, damit sich nicht erkennen lässt, ob es ein Konto gibt).
+     */
     @Transactional(readOnly = true)
     public LoginResponse login(String email, String password) {
+        loginAttempts.checkNotLocked(email);
         UserAccount user = userRepository.findByEmailIgnoreCase(email.trim())
                 .filter(candidate -> passwordEncoder.matches(password, candidate.getPasswordHash()))
-                .orElseThrow(() -> new BadCredentialsException("Ungültige Zugangsdaten"));
+                .orElseThrow(() -> {
+                    loginAttempts.recordFailure(email);
+                    return new BadCredentialsException("Ungültige Zugangsdaten");
+                });
+        loginAttempts.reset(email);
         TokenService.IssuedToken token = tokenService.issue(user);
         return new LoginResponse(token.value(), token.expiresAt(), UserDto.from(user));
     }

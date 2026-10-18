@@ -58,6 +58,16 @@ public class GlobalExceptionHandler {
         return problem(HttpStatus.BAD_REQUEST, "Passwort ungültig", ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidTokenException.class)
+    public ProblemDetail handleInvalidToken(InvalidTokenException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Link ungültig", ex.getMessage());
+    }
+
+    @ExceptionHandler(LoginLockedException.class)
+    public ProblemDetail handleLoginLocked(LoginLockedException ex) {
+        return problem(HttpStatus.TOO_MANY_REQUESTS, "Anmeldung gesperrt", ex.getMessage());
+    }
+
     @ExceptionHandler(BusinessRuleException.class)
     public ProblemDetail handleBusinessRule(BusinessRuleException ex) {
         return problem(HttpStatus.CONFLICT, "Aktion nicht möglich", ex.getMessage());

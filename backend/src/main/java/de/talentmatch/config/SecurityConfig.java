@@ -51,7 +51,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register",
+                                "/api/auth/password-reset/request", "/api/auth/password-reset/confirm").permitAll()
                         .requestMatchers("/api/auth/**").authenticated()
                         // Antwortseite der Evidenz-Anfrage: Zugang nur über den geheimen Link
                         .requestMatchers("/api/public/**").permitAll()

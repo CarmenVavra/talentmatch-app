@@ -794,6 +794,72 @@ class TalentMatchIntegrationTest {
     }
 
     @Test
+    void forgottenPasswordIsResetOnceViaTheMailedLink() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        String email = "vera.vergessen@example.org";
+        register(email);
+
+        requestPasswordReset(email).andExpect(status().isNoContent());
+        requestPasswordReset(email).andExpect(status().isNoContent());
+        requestPasswordReset("unbekannt@example.org").andExpect(status().isNoContent());
+
+        // Genau eine Mail (Mindestabstand), keine für unbekannte Adressen
+        List<String> bodies = mailBodiesTo(hrToken, email);
+        assertThat(bodies).hasSize(1);
+        assertThat(mailBodiesTo(hrToken, "unbekannt@example.org")).isEmpty();
+        Matcher matcher = Pattern.compile("/passwort-zuruecksetzen\\?token=([A-Za-z0-9_-]+)")
+                .matcher(bodies.getFirst());
+        assertThat(matcher.find()).isTrue();
+        String token = matcher.group(1);
+
+        confirmPasswordReset(token, "ganz-neu-2026").andExpect(status().isNoContent());
+        confirmPasswordReset(token, "noch-einmal-2026")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.detail").value(containsString("ungültig oder abgelaufen")));
+
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson(email, "bewerbung-2026")))
+                .andExpect(status().isUnauthorized());
+        login(email, "ganz-neu-2026");
+    }
+
+    @Test
+    void loginIsLockedAfterTooManyFailuresUntilThePasswordIsReset() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        String email = "lars.lock@example.org";
+        register(email);
+
+        for (int i = 0; i < 5; i++) {
+            mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson(email, "falsch-" + i)))
+                    .andExpect(status().isUnauthorized());
+        }
+        // Auch das richtige Passwort hilft während der Sperre nicht
+        mockMvc.perform(post("/api/auth/login").contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson(email, "bewerbung-2026")))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.detail").value(containsString("15 Minuten")));
+
+        // Zurücksetzen des Passworts hebt die Sperre auf
+        requestPasswordReset(email).andExpect(status().isNoContent());
+        Matcher matcher = Pattern.compile("token=([A-Za-z0-9_-]+)").matcher(mailBodiesTo(hrToken, email).getFirst());
+        assertThat(matcher.find()).isTrue();
+        confirmPasswordReset(matcher.group(1), "entsperrt-2026").andExpect(status().isNoContent());
+        login(email, "entsperrt-2026");
+    }
+
+    @Test
+    void deletingAnAccountAlsoRemovesOpenResetLinks() throws Exception {
+        String email = "ruth.reset@example.org";
+        String token = register(email);
+        requestPasswordReset(email).andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/applicant/account/delete").header(HttpHeaders.AUTHORIZATION, bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"password\":\"bewerbung-2026\"}"))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void seededApplicantHasDemoApplications() throws Exception {
         String token = login(applicantEmail, applicantPassword);
         mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(token)))
@@ -877,6 +943,22 @@ class TalentMatchIntegrationTest {
         mockMvc.perform(patch("/api/applications/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
                         .contentType(MediaType.APPLICATION_JSON).content("{\"status\":\"" + status + "\"}"))
                 .andExpect(status().isOk());
+    }
+
+    private ResultActions requestPasswordReset(String email) throws Exception {
+        return mockMvc.perform(post("/api/auth/password-reset/request").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + email + "\"}"));
+    }
+
+    private ResultActions confirmPasswordReset(String token, String newPassword) throws Exception {
+        return mockMvc.perform(post("/api/auth/password-reset/confirm").contentType(MediaType.APPLICATION_JSON)
+                .content("{\"token\":\"" + token + "\",\"newPassword\":\"" + newPassword + "\"}"));
+    }
+
+    private List<String> mailBodiesTo(String hrToken, String recipient) throws Exception {
+        String outbox = mockMvc.perform(get("/api/outbox").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andReturn().getResponse().getContentAsString();
+        return JsonPath.read(outbox, "$.mails[?(@.recipient == '" + recipient + "')].body");
     }
 
     private List<String> outboxSubjects(String hrToken, Integer applicationId) throws Exception {

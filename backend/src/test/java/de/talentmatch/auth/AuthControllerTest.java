@@ -2,6 +2,7 @@ package de.talentmatch.auth;
 
 import static de.talentmatch.support.WebMvcSecurityTestConfig.hrManager;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -23,6 +24,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import de.talentmatch.auth.api.LoginResponse;
 import de.talentmatch.auth.api.UserDto;
+import de.talentmatch.common.exception.InvalidTokenException;
+import de.talentmatch.common.exception.LoginLockedException;
 import de.talentmatch.support.WebMvcSecurityTestConfig;
 
 @WebMvcTest(AuthController.class)
@@ -37,6 +40,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private AuthService authService;
+
+    @MockitoBean
+    private PasswordResetService passwordResetService;
 
     @Test
     void loginIsPublicAndReturnsToken() throws Exception {
@@ -124,5 +130,44 @@ class AuthControllerTest {
                         .content("{\"currentPassword\":\"alt-passwort\",\"newPassword\":\"neues-passwort\"}"))
                 .andExpect(status().isNoContent());
         verify(authService).changePassword("katrin.vogel@talentmatch.de", "alt-passwort", "neues-passwort");
+    }
+
+    @Test
+    void lockedLoginReturns429WithTheReason() throws Exception {
+        when(authService.login("katrin.vogel@talentmatch.de", "geheim"))
+                .thenThrow(new LoginLockedException("Zu viele fehlgeschlagene Anmeldeversuche."));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"katrin.vogel@talentmatch.de\",\"password\":\"geheim\"}"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.detail").value("Zu viele fehlgeschlagene Anmeldeversuche."));
+    }
+
+    @Test
+    void passwordResetRequestIsPublic() throws Exception {
+        mockMvc.perform(post("/api/auth/password-reset/request")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"max@example.org\"}"))
+                .andExpect(status().isNoContent());
+        verify(passwordResetService).requestReset("max@example.org");
+    }
+
+    @Test
+    void passwordResetConfirmValidatesAndReportsInvalidLinks() throws Exception {
+        mockMvc.perform(post("/api/auth/password-reset/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"\",\"newPassword\":\"kurz\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.token").exists())
+                .andExpect(jsonPath("$.errors.newPassword").exists());
+
+        doThrow(new InvalidTokenException("Der Link ist ungültig oder abgelaufen."))
+                .when(passwordResetService).resetPassword("alt", "neues-passwort");
+        mockMvc.perform(post("/api/auth/password-reset/confirm")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"alt\",\"newPassword\":\"neues-passwort\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Link ungültig"));
     }
 }

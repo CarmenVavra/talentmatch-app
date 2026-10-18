@@ -53,6 +53,12 @@ talentmatch:
     response-period: 14d
     reminder-after: 7d
     retention: 730d
+  security:
+    # Nach so vielen Fehlversuchen in Folge wird die Anmeldung für ein Konto vorübergehend gesperrt
+    max-login-failures: 5
+    login-lock-duration: 15m
+    # Gültigkeit des Links aus der E-Mail „Passwort zurücksetzen“
+    password-reset-validity: 1h
   privacy:
     # Absagen ohne Evidenz werden nach dieser Frist automatisch gelöscht
     rejected-retention: 180d
