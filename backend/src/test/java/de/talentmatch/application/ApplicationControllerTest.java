@@ -1,9 +1,11 @@
 package de.talentmatch.application;
 
 import static de.talentmatch.support.WebMvcSecurityTestConfig.hrManager;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -30,11 +33,19 @@ import org.springframework.test.web.servlet.MockMvc;
 import de.talentmatch.analysis.AnalysisService;
 import de.talentmatch.application.api.ApplicationSummaryDto;
 import de.talentmatch.application.api.CandidateSummaryDto;
+import de.talentmatch.application.api.DuplicateDto;
 import de.talentmatch.common.exception.AiAnalysisException;
+import de.talentmatch.common.exception.BusinessRuleException;
 import de.talentmatch.common.exception.InvalidFileException;
 import de.talentmatch.resume.DocumentType;
 import de.talentmatch.resume.ResumeFile;
+import de.talentmatch.resume.ApplicantDocuments;
 import de.talentmatch.resume.ResumeUploadService;
+import de.talentmatch.resume.UploadInspectionService;
+import de.talentmatch.resume.api.FileGroupDto;
+import de.talentmatch.resume.api.GroupMatch;
+import de.talentmatch.resume.api.InspectedFileDto;
+import de.talentmatch.resume.api.UploadInspectionDto;
 import de.talentmatch.support.WebMvcSecurityTestConfig;
 
 @WebMvcTest(ApplicationController.class)
@@ -52,6 +63,12 @@ class ApplicationControllerTest {
 
     @MockitoBean
     private AnalysisService analysisService;
+
+    @MockitoBean
+    private UploadInspectionService inspectionService;
+
+    @MockitoBean
+    private ApplicationMergeService mergeService;
 
     @Test
     void listsApplicationsOfJob() throws Exception {
@@ -91,6 +108,74 @@ class ApplicationControllerTest {
         mockMvc.perform(multipart("/api/jobs/1/applications").file(file).with(hrManager()))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value("Falscher Dateityp"));
+    }
+
+    @Test
+    void uploadPassesOptionalDocumentsOfTheSamePerson() throws Exception {
+        MockMultipartFile resume = new MockMultipartFile("file", "cv.pdf", "application/pdf", new byte[] {37});
+        MockMultipartFile skills = new MockMultipartFile("skillProfile", "skills.pdf", "application/pdf",
+                new byte[] {37});
+        ArgumentCaptor<ApplicantDocuments> documents = ArgumentCaptor.forClass(ApplicantDocuments.class);
+        when(uploadService.upload(eq(1L), documents.capture())).thenReturn(summary(ApplicationStatus.NEW));
+
+        mockMvc.perform(multipart("/api/jobs/1/applications").file(resume).file(skills).with(hrManager()))
+                .andExpect(status().isCreated());
+
+        assertThat(documents.getValue().skillProfile()).isPresent();
+        assertThat(documents.getValue().coverLetter()).isEmpty();
+    }
+
+    @Test
+    void inspectReturnsFilesAndSuggestedGroups() throws Exception {
+        when(inspectionService.inspect(eq(1L), any())).thenReturn(new UploadInspectionDto(
+                List.of(new InspectedFileDto(0, "cv.pdf", DocumentType.RESUME, "Carmen", "Gregor",
+                                "carmen@example.org", null, null),
+                        new InspectedFileDto(1, "skills.pdf", DocumentType.SKILL_PROFILE, "Carmen", "Gregor",
+                                "carmen@example.org", null, null)),
+                List.of(new FileGroupDto(List.of(0, 1), GroupMatch.EMAIL, false))));
+
+        mockMvc.perform(multipart("/api/jobs/1/applications/inspect")
+                        .file(new MockMultipartFile("files", "cv.pdf", "application/pdf", new byte[] {37}))
+                        .file(new MockMultipartFile("files", "skills.pdf", "application/pdf", new byte[] {37}))
+                        .with(hrManager()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.files[1].type").value("SKILL_PROFILE"))
+                .andExpect(jsonPath("$.groups[0].fileIndexes.length()").value(2))
+                .andExpect(jsonPath("$.groups[0].match").value("EMAIL"));
+    }
+
+    @Test
+    void listsPossibleDuplicates() throws Exception {
+        when(mergeService.findDuplicates(5L)).thenReturn(List.of(new DuplicateDto(6L, "Carmen", "Gregor",
+                LocalDateTime.of(2026, 10, 18, 9, 0), ApplicationStatus.MATCHED, GroupMatch.NAME,
+                List.of(new DuplicateDto.DocumentRefDto(DocumentType.RESUME, "Skillprofil.pdf",
+                        DocumentType.SKILL_PROFILE)))));
+
+        mockMvc.perform(get("/api/applications/5/duplicates").with(hrManager()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].reason").value("NAME"))
+                .andExpect(jsonPath("$[0].documents[0].suggestedAs").value("SKILL_PROFILE"));
+    }
+
+    @Test
+    void mergeValidatesTheRequest() throws Exception {
+        mockMvc.perform(post("/api/applications/5/merge").with(hrManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"documents\":[]}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.sourceId").exists());
+        verify(mergeService, never()).merge(any(), any());
+    }
+
+    @Test
+    void mergeRejectsBusinessRuleViolationsWith409() throws Exception {
+        when(mergeService.merge(eq(5L), any()))
+                .thenThrow(new BusinessRuleException("Nur Bewerbungen derselben Stelle."));
+
+        mockMvc.perform(post("/api/applications/5/merge").with(hrManager())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sourceId\":6,\"documents\":[{\"from\":\"RESUME\",\"to\":\"SKILL_PROFILE\"}]}"))
+                .andExpect(status().isConflict());
     }
 
     @Test

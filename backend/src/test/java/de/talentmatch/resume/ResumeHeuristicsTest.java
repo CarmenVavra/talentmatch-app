@@ -15,6 +15,24 @@ class ResumeHeuristicsTest {
     }
 
     @Test
+    void ignoresDocumentTypeWordsInFileNames() {
+        assertThat(ResumeHeuristics.guessName("Skillprofil_Carmen_Gregor.pdf"))
+                .isEqualTo(new ResumeHeuristics.Name("Carmen", "Gregor"));
+        assertThat(ResumeHeuristics.guessName("Anschreiben - Carmen Gregor.pdf"))
+                .isEqualTo(new ResumeHeuristics.Name("Carmen", "Gregor"));
+        assertThat(ResumeHeuristics.guessName("Skill-Profil Carmen Gregor final.pdf"))
+                .isEqualTo(new ResumeHeuristics.Name("Carmen", "Gregor"));
+    }
+
+    @Test
+    void normalizesPhoneNumbersForComparison() {
+        assertThat(ResumeHeuristics.normalizePhone("+43 660 123 4567"))
+                .isEqualTo(ResumeHeuristics.normalizePhone("0660/1234567"));
+        assertThat(ResumeHeuristics.normalizePhone("123")).isEmpty();
+        assertThat(ResumeHeuristics.normalizePhone(null)).isEmpty();
+    }
+
+    @Test
     void fallsBackToPlaceholderName() {
         assertThat(ResumeHeuristics.guessName("lebenslauf.pdf"))
                 .isEqualTo(new ResumeHeuristics.Name("Neu", "Bewerber:in"));

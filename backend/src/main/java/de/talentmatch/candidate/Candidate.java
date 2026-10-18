@@ -156,6 +156,22 @@ public class Candidate {
         this.rawResumeText = rawResumeText;
     }
 
+    /**
+     * Neuer Lebenslauf (z. B. beim Zusammenführen): das bisher extrahierte Profil gilt nicht mehr.
+     */
+    public void replaceResumeText(String resumeText) {
+        this.rawResumeText = resumeText;
+        this.parsedProfile = null;
+    }
+
+    /**
+     * Neues Skill-Profil: bereits extrahierte Skills werden bei der nächsten Analyse neu ermittelt.
+     */
+    public void replaceSkillProfileText(String skillProfileText) {
+        this.skillProfileText = skillProfileText;
+        this.skillProfileSkills = new ArrayList<>();
+    }
+
     public Optional<CandidateProfile> getParsedProfile() {
         return Optional.ofNullable(parsedProfile);
     }

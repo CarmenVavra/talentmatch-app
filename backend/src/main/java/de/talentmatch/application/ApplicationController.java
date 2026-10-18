@@ -24,13 +24,18 @@ import org.springframework.web.multipart.MultipartFile;
 import de.talentmatch.analysis.AnalysisService;
 import de.talentmatch.application.api.ApplicationDetailDto;
 import de.talentmatch.application.api.ApplicationSummaryDto;
+import de.talentmatch.application.api.DuplicateDto;
+import de.talentmatch.application.api.MergeRequest;
 import de.talentmatch.application.api.UpdateNotesRequest;
 import de.talentmatch.application.api.UpdateQuestionRequest;
 import de.talentmatch.application.api.UpdateStatusRequest;
 import de.talentmatch.common.exception.ResourceNotFoundException;
+import de.talentmatch.resume.ApplicantDocuments;
 import de.talentmatch.resume.DocumentType;
 import de.talentmatch.resume.ResumeFile;
 import de.talentmatch.resume.ResumeUploadService;
+import de.talentmatch.resume.UploadInspectionService;
+import de.talentmatch.resume.api.UploadInspectionDto;
 
 @RestController
 @RequestMapping("/api")
@@ -41,12 +46,17 @@ public class ApplicationController {
     private final ApplicationService applicationService;
     private final ResumeUploadService uploadService;
     private final AnalysisService analysisService;
+    private final UploadInspectionService inspectionService;
+    private final ApplicationMergeService mergeService;
 
     public ApplicationController(ApplicationService applicationService, ResumeUploadService uploadService,
-                                 AnalysisService analysisService) {
+                                 AnalysisService analysisService, UploadInspectionService inspectionService,
+                                 ApplicationMergeService mergeService) {
         this.applicationService = applicationService;
         this.uploadService = uploadService;
         this.analysisService = analysisService;
+        this.inspectionService = inspectionService;
+        this.mergeService = mergeService;
     }
 
     @GetMapping("/jobs/{jobId}/applications")
@@ -56,8 +66,20 @@ public class ApplicationController {
 
     @PostMapping(path = "/jobs/{jobId}/applications", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public ApplicationSummaryDto upload(@PathVariable Long jobId, @RequestPart("file") MultipartFile file) {
-        return uploadService.upload(jobId, file);
+    public ApplicationSummaryDto upload(@PathVariable Long jobId, @RequestPart("file") MultipartFile file,
+                                        @RequestPart(name = "skillProfile", required = false)
+                                        MultipartFile skillProfile,
+                                        @RequestPart(name = "coverLetter", required = false)
+                                        MultipartFile coverLetter) {
+        return uploadService.upload(jobId, ApplicantDocuments.of(file, skillProfile, coverLetter));
+    }
+
+    /**
+     * Vorabprüfung mehrerer Dateien: Dokumentart und Zuordnung zu Personen – speichert nichts.
+     */
+    @PostMapping(path = "/jobs/{jobId}/applications/inspect", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public UploadInspectionDto inspect(@PathVariable Long jobId, @RequestPart("files") List<MultipartFile> files) {
+        return inspectionService.inspect(jobId, files);
     }
 
     @GetMapping("/applications")
@@ -79,6 +101,16 @@ public class ApplicationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateNotes(@PathVariable Long id, @Valid @RequestBody UpdateNotesRequest request) {
         applicationService.updateNotes(id, request.notes());
+    }
+
+    @GetMapping("/applications/{id}/duplicates")
+    public List<DuplicateDto> duplicates(@PathVariable Long id) {
+        return mergeService.findDuplicates(id);
+    }
+
+    @PostMapping("/applications/{id}/merge")
+    public ApplicationDetailDto merge(@PathVariable Long id, @Valid @RequestBody MergeRequest request) {
+        return mergeService.merge(id, request);
     }
 
     @PostMapping("/applications/{id}/seen")

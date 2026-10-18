@@ -382,6 +382,156 @@ class TalentMatchIntegrationTest {
     }
 
     @Test
+    void hrUploadGroupsDocumentsOfOnePersonAndMergesDuplicates() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        String created = mockMvc.perform(post("/api/jobs").header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jobJson("Frontend")))
+                .andReturn().getResponse().getContentAsString();
+        Integer jobId = JsonPath.read(created, "$.id");
+
+        // 1. Vorabprüfung: Lebenslauf + Skill-Profil von Carmen (gleiche E-Mail) und ein Lebenslauf von Max
+        mockMvc.perform(multipart("/api/jobs/{id}/applications/inspect", jobId)
+                        .file(pdfPart("files", "Lebenslauf_Carmen_Gregor.pdf",
+                                "Carmen Gregor carmen@example.org Berufserfahrung Ausbildung"))
+                        .file(pdfPart("files", "Skillprofil_Carmen_Gregor.pdf",
+                                "Skills carmen@example.org Angular, Java"))
+                        .file(pdfPart("files", "CV_Max_Muster.pdf", "Max Muster max@example.org Berufserfahrung"))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.files[1].type").value("SKILL_PROFILE"))
+                .andExpect(jsonPath("$.groups.length()").value(2))
+                .andExpect(jsonPath("$.groups[0].fileIndexes.length()").value(2))
+                .andExpect(jsonPath("$.groups[0].match").value("EMAIL"))
+                .andExpect(jsonPath("$.groups[0].needsReview").value(false));
+
+        // 2. Upload einer Gruppe: eine Bewerbung mit Lebenslauf und Skill-Profil
+        mockMvc.perform(multipart("/api/jobs/{id}/applications", jobId)
+                        .file(pdfPart("file", "Lebenslauf_Max_Muster.pdf", "Max Muster Berufserfahrung"))
+                        .file(pdfPart("skillProfile", "Skills_Max.pdf", "Skills Java"))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isCreated());
+
+        // 3. Der bisherige Fehlerfall: Skill-Profil einzeln hochgeladen → zwei Bewerbungen derselben Person
+        String first = mockMvc.perform(multipart("/api/jobs/{id}/applications", jobId)
+                        .file(pdfPart("file", "Lebenslauf_Carmen_Gregor.pdf", "Carmen Gregor Wien Berufserfahrung"))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andReturn().getResponse().getContentAsString();
+        String second = mockMvc.perform(multipart("/api/jobs/{id}/applications", jobId)
+                        .file(pdfPart("file", "Skillprofil_Carmen_Gregor.pdf", "Skills Angular Java Material"))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andReturn().getResponse().getContentAsString();
+        Integer targetId = JsonPath.read(first, "$.id");
+        Integer sourceId = JsonPath.read(second, "$.id");
+
+        mockMvc.perform(get("/api/applications/{id}/duplicates", targetId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].id").value(sourceId))
+                .andExpect(jsonPath("$[0].reason").value("NAME"))
+                .andExpect(jsonPath("$[0].documents[0].suggestedAs").value("SKILL_PROFILE"));
+
+        mockMvc.perform(post("/api/applications/{id}/merge", targetId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"sourceId\":" + sourceId
+                                + ",\"documents\":[{\"from\":\"RESUME\",\"to\":\"SKILL_PROFILE\"}]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resumeFileName").value("Lebenslauf_Carmen_Gregor.pdf"))
+                .andExpect(jsonPath("$.skillProfileFileName").value("Skillprofil_Carmen_Gregor.pdf"))
+                .andExpect(jsonPath("$.analysis").doesNotExist());
+
+        mockMvc.perform(get("/api/applications/{id}", sourceId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/applications/{id}/skill-profile", targetId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/applications/{id}/duplicates", targetId)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(jsonPath("$.length()").value(0));
+
+        mockMvc.perform(delete("/api/jobs/{id}", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void mergeIsNeverPossibleAcrossJobs() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobA = createJob(hrToken);
+        Integer jobB = createJob(hrToken);
+        Integer onA = hrUpload(hrToken, jobA, "Lebenslauf_Ella_Kreuz.pdf", "Ella Kreuz ella@example.org");
+        Integer onB = hrUpload(hrToken, jobB, "Skillprofil_Ella_Kreuz.pdf", "Skills ella@example.org");
+
+        // Gleiche Person, aber andere Stelle: kein Duplikat-Hinweis …
+        mockMvc.perform(get("/api/applications/{id}/duplicates", onA)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(jsonPath("$.length()").value(0));
+        // … und auch direkt per API nicht zusammenführbar
+        mockMvc.perform(post("/api/applications/{id}/merge", onA)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mergeJson(onB, "RESUME", "SKILL_PROFILE")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(containsString("dieselbe Stelle")));
+        mockMvc.perform(get("/api/applications/{id}", onB).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/applications/{id}", onA).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(jsonPath("$.skillProfileFileName").doesNotExist());
+
+        deleteJob(hrToken, jobA);
+        deleteJob(hrToken, jobB);
+    }
+
+    @Test
+    void mergeIsNeverPossibleAcrossDifferentApplicantAccounts() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        // Zwei verschiedene Personen mit gleichem Namen bewerben sich über das Portal
+        Integer first = portalApply(register("anna.berg.1@example.org"), jobId);
+        Integer second = portalApply(register("anna.berg.2@example.org"), jobId);
+
+        mockMvc.perform(get("/api/applications/{id}/duplicates", first)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(jsonPath("$.length()").value(0));
+        mockMvc.perform(post("/api/applications/{id}/merge", first)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mergeJson(second, "RESUME", "SKILL_PROFILE")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(containsString("verschiedenen Bewerber-Konten")));
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
+    void portalAndHrUploadOfTheSamePersonOnTheSameJobCanBeMerged() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        String applicantToken = register("ben.gleich@example.org");
+        Integer portal = portalApply(applicantToken, jobId);
+        Integer hr = hrUpload(hrToken, jobId, "Skillprofil_Ben_Berg.pdf", "Skills ben.gleich@example.org");
+
+        mockMvc.perform(get("/api/applications/{id}/duplicates", hr)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(jsonPath("$[0].id").value(portal))
+                .andExpect(jsonPath("$[0].reason").value("EMAIL"));
+        mockMvc.perform(post("/api/applications/{id}/merge", portal)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mergeJson(hr, "RESUME", "SKILL_PROFILE")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.skillProfileFileName").value("Skillprofil_Ben_Berg.pdf"));
+
+        // Die Bewerber:in sieht weiterhin genau ihre eine Bewerbung
+        mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(applicantToken)))
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].skillProfileFileName").value("Skillprofil_Ben_Berg.pdf"));
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
     void seededApplicantHasDemoApplications() throws Exception {
         String token = login(applicantEmail, applicantPassword);
         mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(token)))
@@ -436,6 +586,58 @@ class TalentMatchIntegrationTest {
 
     private static String json(String current, String next) {
         return "{\"currentPassword\":\"" + current + "\",\"newPassword\":\"" + next + "\"}";
+    }
+
+    private Integer createJob(String hrToken) throws Exception {
+        String created = mockMvc.perform(post("/api/jobs").header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jobJson("Test")))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return JsonPath.read(created, "$.id");
+    }
+
+    private void deleteJob(String hrToken, Integer jobId) throws Exception {
+        mockMvc.perform(delete("/api/jobs/{id}", jobId).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNoContent());
+    }
+
+    private Integer hrUpload(String hrToken, Integer jobId, String fileName, String text) throws Exception {
+        String created = mockMvc.perform(multipart("/api/jobs/{id}/applications", jobId)
+                        .file(pdfPart("file", fileName, text))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return JsonPath.read(created, "$.id");
+    }
+
+    /** Registriert eine Bewerber:in „Anna Berg“ bzw. mit der angegebenen E-Mail und liefert das Token. */
+    private String register(String email) throws Exception {
+        String response = mockMvc.perform(post("/api/auth/register").contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"firstName":"Anna","lastName":"Berg","email":"%s","password":"bewerbung-2026"}
+                                """.formatted(email)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return JsonPath.read(response, "$.token");
+    }
+
+    private Integer portalApply(String applicantToken, Integer jobId) throws Exception {
+        String response = mockMvc.perform(multipart("/api/applicant/jobs/{id}/applications", jobId)
+                        .file(pdfPart("file", "cv.pdf", "Anna Berg Berufserfahrung"))
+                        .header(HttpHeaders.AUTHORIZATION, bearer(applicantToken)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        return JsonPath.read(response, "$.id");
+    }
+
+    private static String mergeJson(Integer sourceId, String from, String to) {
+        return "{\"sourceId\":" + sourceId + ",\"documents\":[{\"from\":\"" + from + "\",\"to\":\"" + to
+                + "\"}]}";
+    }
+
+    private static MockMultipartFile pdfPart(String part, String fileName, String text) throws IOException {
+        return new MockMultipartFile(part, fileName, "application/pdf", pdf(text));
     }
 
     private static String jobJson(String description) {

@@ -30,6 +30,13 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
         "coverLetterDocument"})
     List<Application> findAllWithDependenciesByJobPositionId(Long jobPositionId);
 
+    /**
+     * Bewerbung mit allen Unterlagen – zum Zusammenführen.
+     */
+    @EntityGraph(attributePaths = {"candidate", "analysis", "jobPosition", "resumeDocument", "skillProfileDocument",
+        "coverLetterDocument"})
+    Optional<Application> findWithDocumentsById(Long id);
+
     @EntityGraph(attributePaths = {"resumeDocument"})
     Optional<Application> findWithResumeById(Long id);
 

@@ -106,6 +106,13 @@ public class Application {
     }
 
     /**
+     * Verwirft das Analyse-Ergebnis, z. B. wenn sich die Unterlagen geändert haben. Der Status bleibt erhalten.
+     */
+    public void clearAnalysis() {
+        this.analysis = null;
+    }
+
+    /**
      * Merkt sich, dass HR die Bewerbung gesehen hat (nur beim ersten Mal).
      */
     public void markSeenByHr(LocalDateTime now) {
