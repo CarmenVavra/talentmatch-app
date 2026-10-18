@@ -45,7 +45,7 @@ Ein generiertes Feature gilt in meinem Workflow erst dann als fertig, wenn seine
 | :--- | :--- | :--- |
 | **Testautomatisierung** | KI-generierte Erkennung von Edge Cases & Randfällen | **155 Backend-Tests** (JUnit 5, MockMvc) / **182 Frontend-Tests** |
 | **CI/CD Pipeline** | Automatisierte Validierung bei jedem Commit | GitHub Actions (Checkstyle, ESLint, Prettier) |
-| **Determinismus-Check** | Systematische Abfragen mit variierenden LLM-Temperaturen | Match-Score-Varianz von maximal **±1 Punkt** bei identischem Input |
+| **Nachvollziehbarer Score** | Regelbasierter Skill-Abgleich kombiniert mit LLM-Bewertung; feste Gewichtung (50 % Skills, 30 % Erfahrung, 10 % Ausbildung, 10 % Sprachen) | Teilscores einzeln sichtbar – die KI schlägt vor, Menschen entscheiden |
 | **Compliance & DSGVO** | Automatische Löschung abgesagter Bewerbungen nach 6 Monaten; Evidenz nur mit Einwilligung (ohne Antwort Löschung nach 14 Tagen, höchstens 24 Monate) | Schutz sensibler personenbezogener Bewerberdaten |
 
 ---
