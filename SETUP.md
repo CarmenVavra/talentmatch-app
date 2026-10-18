@@ -74,6 +74,15 @@ Bewerbung endgültig, inklusive Unterlagen, KI-Analyse und E-Mails.
 
 ## E-Mails und Postausgang
 
+Bewerber:innen **mit Portal-Konto** erhalten automatisch E-Mails:
+
+- eine **Eingangsbestätigung**, sobald sie sich beworben haben,
+- bei **jeder für sie sichtbaren Statusänderung**: Einladung zum Interview, Zusage, Absage oder „wieder in
+  Prüfung“. Der interne Schritt „KI-analysiert“ löst keine Mail aus; „In Evidenz halten“ verschickt nur die
+  Evidenz-Mail, keine zusätzliche Absage.
+
+Von HR hochgeladene Bewerbungen ohne Portal-Konto erhalten keine automatischen Mails.
+
 Alle E-Mails der App stehen im **Postausgang** (Avatar-Menü → „Postausgang“). Ohne Mailserver werden sie
 **nur dort abgelegt**, nicht versendet – die Links darin funktionieren trotzdem. Für echten Versand vor dem
 Start einen SMTP-Server setzen:
