@@ -17,6 +17,16 @@ Wrapper (`backend/mvnw.cmd`) geladen, Frontend-Abhängigkeiten installiert `star
 `backend/src/main/resources/application.yml` unter `talentmatch.seed` (HR-Manager:in und Bewerber:in).
 Passwort ändern: Avatar oben rechts → „Passwort ändern“.
 
+**Passwort vergessen:** Link auf der Login-Seite. Die App schickt einen Einmal-Link per E-Mail
+(60 Minuten gültig, `talentmatch.security.password-reset-validity`); gespeichert wird nur ein Hash des Links.
+Ob es zur Adresse ein Konto gibt, verrät die Seite nicht. Ohne Mailserver liegt die Mail im Postausgang –
+dort kann HR den Link sehen, für echten Betrieb deshalb SMTP einrichten (siehe unten).
+
+**Schutz gegen Passwort-Raten:** Nach 5 Fehlversuchen in Folge ist die Anmeldung für die E-Mail-Adresse
+15 Minuten gesperrt (`talentmatch.security.max-login-failures` / `login-lock-duration`). Ein über den Link
+zurückgesetztes Passwort hebt die Sperre sofort auf. Die Zähler liegen im Speicher und sind nach einem
+Neustart zurückgesetzt.
+
 **Lebensläufe hochladen (HR):** Mehrere PDFs auf einmal ablegen – die App erkennt Lebenslauf, Skill-Profil und
 Anschreiben und fasst Unterlagen derselben Person zusammen (gleiche E-Mail, Telefonnummer oder gleicher Name;
 reine Namens-Treffer sind zur Prüfung markiert). In der Vorschau lassen sich Dokumentart und Zuordnung ändern.
