@@ -51,9 +51,9 @@ Bewerber:innen bewerben sich über ein eigenes Portal und verfolgen dort den Sta
 | Frontend | Angular 21 (Standalone Components, Signals, Zoneless), Reactive Forms, CDK Drag & Drop |
 | Backend | Spring Boot 4, Java 21, Spring Security mit JWT, Spring Data JPA, Controller → Service → Repository |
 | KI | Spring AI 2 mit OpenAI GPT-4o, Structured Output über `BeanOutputConverter` |
-| PDF | Apache Tika zur Text-Extraktion, Original-PDF für die Vorschau |
+| PDF | Apache Tika zur Text-Extraktion, Texterkennung für Bild-PDFs per GPT-4o, Original-PDF für die Vorschau |
 | Datenbank | H2 lokal (ohne Installation), PostgreSQL per Profil bzw. Docker |
-| Qualität | 155 Backend-Tests (JUnit 5, `@WebMvcTest`, `@SpringBootTest`), 182 Frontend-Tests, ESLint, Prettier, Checkstyle, GitHub Actions |
+| Qualität | 162 Backend-Tests (JUnit 5, `@WebMvcTest`, `@SpringBootTest`), 182 Frontend-Tests, ESLint, Prettier, Checkstyle, GitHub Actions |
 
 ## Schnellstart
 

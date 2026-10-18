@@ -137,6 +137,10 @@ Ein dauerhaft in Windows gesetzter `OPENAI_API_KEY` (Benutzer- oder Systemvariab
 auch dann übernommen, wenn das aufrufende Fenster vor dem Setzen geöffnet wurde. Nach dem Ändern des Keys
 die App mit `stop.bat` / `start.bat` neu starten.
 
+**Bild-PDFs:** Enthält ein PDF keinen Text (eingescannt oder über „Drucken → Microsoft Print to PDF“
+erstellt), rendert die App bis zu 5 Seiten und lässt GPT-4o den Text auslesen (dauert etwa 10 Sekunden).
+Ohne Key erscheint stattdessen eine Meldung, wie sich das PDF mit Text speichern lässt.
+
 Ohne Key startet die App trotzdem: alle Demo-Bewerbungen haben fertige Analysen; Upload und
 Text-Extraktion funktionieren, die KI-Analyse meldet dann „Analyse fehlgeschlagen – erneut versuchen“.
 Modell änderbar über `OPENAI_MODEL`.
