@@ -106,6 +106,38 @@
             Absage
           </button>
         </div>
+        <div class="secondary-actions">
+          <button
+            type="button"
+            class="btn btn-ghost talent-pool-button"
+            [disabled]="!!d.talentPool || !d.candidate.email"
+            [title]="
+              d.candidate.email
+                ? 'Absage senden und um Zustimmung zur Evidenz bitten'
+                : 'Keine E-Mail-Adresse bekannt'
+            "
+            (click)="talentPoolOpen.set(true)"
+          >
+            <lucide-icon [img]="icons.mail" [size]="15" aria-hidden="true" />
+            In Evidenz halten
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-danger-text delete-application"
+            (click)="deleteOpen.set(true)"
+          >
+            <lucide-icon [img]="icons.trash" [size]="15" aria-hidden="true" />
+            Bewerbung löschen
+          </button>
+        </div>
+        @if (d.talentPool; as pool) {
+          <p class="pool-status" role="status">
+            <span class="pool-tag" [class.confirmed]="pool.status === 'CONFIRMED'">{{
+              poolLabel(pool.status)
+            }}</span>
+            <span class="muted">{{ poolDetail(pool) }}</span>
+          </p>
+        }
       </div>
       <app-score-panel class="score" [analysis]="analysis()" />
     </div>
@@ -247,5 +279,34 @@
       (confirmed)="merge($event)"
       (cancelled)="mergeWith.set(null)"
     />
+  }
+}
+
+@if (talentPoolOpen()) {
+  @if (detail(); as d) {
+    <app-talent-pool-dialog [jobTitle]="d.job.title" (closed)="talentPoolOpen.set(false)" />
+  }
+}
+
+@if (deleteOpen()) {
+  @if (detail(); as d) {
+    <app-confirm-dialog
+      title="Bewerbung löschen?"
+      confirmLabel="Endgültig löschen"
+      busyLabel="Wird gelöscht …"
+      [danger]="true"
+      [busy]="store.deleting()"
+      (confirmed)="deleteApplication(d.job.id)"
+      (cancelled)="deleteOpen.set(false)"
+    >
+      <p>
+        Die Bewerbung von
+        <strong>{{ d.candidate.firstName }} {{ d.candidate.lastName }}</strong> auf „{{
+          d.job.title
+        }}“ wird mit allen Unterlagen, der KI-Analyse und den zugehörigen E-Mails endgültig
+        gelöscht.
+      </p>
+      <p>Das lässt sich nicht rückgängig machen.</p>
+    </app-confirm-dialog>
   }
 }

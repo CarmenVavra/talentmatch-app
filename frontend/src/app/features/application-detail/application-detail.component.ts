@@ -9,17 +9,20 @@ import {
   signal,
   untracked,
 } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 
 import { Duplicate, MergeRequest } from '../../core/models/api.models';
 import { positionLabel } from '../../core/util/application';
+import { talentPoolDetail, talentPoolLabel } from '../../core/util/talent-pool';
+import { ConfirmDialogComponent } from '../../shared/confirm-dialog.component';
 import { statusMeta } from '../../core/util/score';
 import { ICONS } from '../../shared/icons';
 import { DayMonthPipe, RelativeTimePipe } from '../../shared/pipes';
 import { ApplicationDetailStore } from './application-detail.store';
 import { InterviewHelperComponent } from './interview-helper.component';
 import { MergeDialogComponent, duplicateReason } from './merge-dialog.component';
+import { TalentPoolDialogComponent } from './talent-pool-dialog.component';
 import { ResumePanelComponent } from './resume-panel.component';
 import { ScorePanelComponent } from './score-panel.component';
 
@@ -34,6 +37,8 @@ import { ScorePanelComponent } from './score-panel.component';
     ResumePanelComponent,
     InterviewHelperComponent,
     MergeDialogComponent,
+    TalentPoolDialogComponent,
+    ConfirmDialogComponent,
   ],
   providers: [ApplicationDetailStore],
   templateUrl: './application-detail.component.html',
@@ -42,6 +47,7 @@ import { ScorePanelComponent } from './score-panel.component';
 })
 export class ApplicationDetailComponent {
   protected readonly store = inject(ApplicationDetailStore);
+  private readonly router = inject(Router);
   protected readonly icons = ICONS;
 
   /** Routen-Parameter :id */
@@ -51,6 +57,10 @@ export class ApplicationDetailComponent {
   /** Duplikat, das gerade zusammengeführt wird (Dialog offen). */
   protected readonly mergeWith = signal<Duplicate | null>(null);
   protected readonly duplicateReason = duplicateReason;
+  protected readonly talentPoolOpen = signal(false);
+  protected readonly deleteOpen = signal(false);
+  protected readonly poolLabel = talentPoolLabel;
+  protected readonly poolDetail = talentPoolDetail;
   protected readonly analysis = this.store.analysis;
   protected readonly status = computed(() => {
     const d = this.detail();
@@ -78,6 +88,16 @@ export class ApplicationDetailComponent {
     this.store.merge(request, (success) => {
       if (success) {
         this.mergeWith.set(null);
+      }
+    });
+  }
+
+  /** Löscht die Bewerbung und kehrt zur Pipeline der Stelle zurück. */
+  protected deleteApplication(jobId: number): void {
+    this.store.deleteApplication((success) => {
+      if (success) {
+        this.deleteOpen.set(false);
+        void this.router.navigate(['/jobs', jobId, 'pipeline']);
       }
     });
   }

@@ -47,6 +47,17 @@
               <lucide-icon [img]="icons.key" [size]="15" aria-hidden="true" />
               Passwort ändern
             </a>
+            @if (auth.isHrManager()) {
+              <a
+                class="menu-item"
+                role="menuitem"
+                routerLink="/outbox"
+                (click)="menuOpen.set(false)"
+              >
+                <lucide-icon [img]="icons.mail" [size]="15" aria-hidden="true" />
+                Postausgang
+              </a>
+            }
             <button type="button" class="menu-item" role="menuitem" (click)="logout()">
               <lucide-icon [img]="icons.logout" [size]="15" aria-hidden="true" />
               Abmelden

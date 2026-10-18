@@ -1,0 +1,63 @@
+<app-confirm-dialog
+  title="In Evidenz halten"
+  confirmLabel="Absage mit Evidenz-Anfrage senden"
+  busyLabel="Wird gesendet …"
+  [wide]="true"
+  [busy]="store.requestingTalentPool()"
+  [confirmDisabled]="!canSend()"
+  (confirmed)="send()"
+  (cancelled)="closed.emit()"
+>
+  <p>
+    Die Bewerbung für <strong>„{{ jobTitle() }}“</strong> erhält den Status „Absage“. Die
+    Bewerber:in wird gefragt, ob sie in Evidenz bleiben möchte. Ohne Antwort binnen 14 Tagen wird
+    die Bewerbung automatisch gelöscht; nach 7 Tagen geht eine Erinnerung raus.
+  </p>
+
+  @if (loading()) {
+    <span class="skeleton sk-mail"></span>
+  } @else if (loadError(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+    </div>
+  } @else {
+    @if (!deliveryEnabled()) {
+      <p class="delivery-hint">
+        Kein Mailserver konfiguriert – die E-Mail wird nicht versendet, sondern im Postausgang
+        abgelegt.
+      </p>
+    }
+    <div class="mail-form">
+      <div class="field">
+        <span class="field-label">An</span>
+        <span class="recipient">{{ recipient() }}</span>
+      </div>
+      <div class="field">
+        <label for="pool-subject">Betreff</label>
+        <input
+          #subjectInput
+          id="pool-subject"
+          class="input"
+          [value]="subject()"
+          (input)="subject.set(subjectInput.value)"
+        />
+      </div>
+      <div class="field">
+        <label for="pool-body">Text</label>
+        <textarea
+          #bodyInput
+          id="pool-body"
+          class="input mail-body"
+          rows="16"
+          [value]="body()"
+          (input)="body.set(bodyInput.value)"
+        ></textarea>
+        <span class="hint">
+          <code>{{ marker }}</code> wird beim Versand durch die persönlichen Links „Ja“ / „Nein,
+          danke“, die Antwortfrist und den Hinweis zur Löschung ersetzt.
+        </span>
+      </div>
+    </div>
+  }
+</app-confirm-dialog>

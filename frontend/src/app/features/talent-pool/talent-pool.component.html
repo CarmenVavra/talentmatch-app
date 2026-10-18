@@ -1,0 +1,66 @@
+<div class="page">
+  <div class="head">
+    <div class="kicker">Talentpool</div>
+    <h1 class="page-title">Evidenz</h1>
+    <p class="muted intro">
+      Bewerber:innen, die nach einer Absage in Evidenz bleiben ({{ counts().confirmed }} bestätigt,
+      {{ counts().requested }} angefragt). Ohne Antwort werden Anfragen nach Fristende automatisch
+      gelöscht, bestätigte Einträge nach Ablauf der Aufbewahrungsdauer.
+    </p>
+  </div>
+
+  @if (error(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+      <button type="button" class="btn btn-ghost" (click)="entries.reload()">Erneut laden</button>
+    </div>
+  }
+
+  @if (entries.isLoading() && !entries.hasValue()) {
+    <span class="skeleton sk-table"></span>
+  } @else if (entries.hasValue()) {
+    @if (entries.value().length === 0) {
+      <div class="empty">
+        Noch niemand in Evidenz. Über „In Evidenz halten“ in der Bewerber-Detailansicht lässt sich
+        nach einer Absage die Zustimmung anfragen.
+      </div>
+    } @else {
+      <div class="panel table-panel">
+        <table class="table">
+          <thead>
+            <tr>
+              <th scope="col">Bewerber:in</th>
+              <th scope="col">Stelle</th>
+              <th scope="col">Status</th>
+              <th scope="col">Details</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (entry of entries.value(); track entry.applicationId) {
+              <tr>
+                <td>
+                  <a class="row-title" [routerLink]="['/applications', entry.applicationId]"
+                    >{{ entry.firstName }} {{ entry.lastName }}</a
+                  >
+                  <div class="row-sub">{{ entry.email ?? '—' }}</div>
+                </td>
+                <td>
+                  <a [routerLink]="['/jobs', entry.jobId, 'pipeline']">{{ entry.jobTitle }}</a>
+                </td>
+                <td>
+                  <span
+                    class="pool-tag"
+                    [class.confirmed]="entry.talentPool.status === 'CONFIRMED'"
+                    >{{ label(entry.talentPool.status) }}</span
+                  >
+                </td>
+                <td class="muted">{{ detail(entry.talentPool) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</div>

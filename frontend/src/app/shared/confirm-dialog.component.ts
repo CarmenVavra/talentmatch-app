@@ -33,6 +33,8 @@ export class ConfirmDialogComponent implements AfterViewInit {
   readonly busy = input(false);
   /** Bestätigen gesperrt, z. B. solange eine Auswahl im Dialog ungültig ist. */
   readonly confirmDisabled = input(false);
+  /** Breiterer Dialog, z. B. für E-Mail-Texte. */
+  readonly wide = input(false);
 
   readonly confirmed = output<void>();
   readonly cancelled = output<void>();

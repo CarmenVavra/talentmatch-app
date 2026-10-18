@@ -42,6 +42,12 @@
   </button>
 }
 
+@if (app.talentPool) {
+  <span class="pool-tag" [class.confirmed]="app.talentPool === 'CONFIRMED'">{{
+    poolLabel(app.talentPool)
+  }}</span>
+}
+
 <div class="foot">
   <span>{{ app.createdAt | dayMonth }}</span>
   <span>{{ app.candidate.city ?? '—' }}</span>

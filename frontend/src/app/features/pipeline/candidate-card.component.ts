@@ -4,6 +4,7 @@ import { LucideAngularModule } from 'lucide-angular';
 import { ApplicationSummary } from '../../core/models/api.models';
 import { positionLabel } from '../../core/util/application';
 import { scoreLabel, scoreTone } from '../../core/util/score';
+import { talentPoolLabel } from '../../core/util/talent-pool';
 import { ICONS } from '../../shared/icons';
 import { DayMonthPipe } from '../../shared/pipes';
 
@@ -22,6 +23,7 @@ export class CandidateCardComponent {
   readonly analyze = output<number>();
 
   protected readonly icons = ICONS;
+  protected readonly poolLabel = talentPoolLabel;
   protected readonly tone = computed(() => scoreTone(this.application().overallScore));
   protected readonly score = computed(() => scoreLabel(this.application().overallScore));
   protected readonly pending = computed(() => this.application().overallScore === null);

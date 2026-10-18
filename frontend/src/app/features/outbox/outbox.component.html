@@ -1,0 +1,65 @@
+<div class="page">
+  <div class="head">
+    <div class="kicker">E-Mails</div>
+    <h1 class="page-title">Postausgang</h1>
+  </div>
+
+  @if (error(); as message) {
+    <div class="alert" role="alert">
+      <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+      <span>{{ message }}</span>
+      <button type="button" class="btn btn-ghost" (click)="outbox.reload()">Erneut laden</button>
+    </div>
+  }
+
+  @if (outbox.hasValue()) {
+    @let box = outbox.value();
+    @if (!box.deliveryEnabled) {
+      <p class="delivery-hint">
+        <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+        <span>
+          Kein Mailserver konfiguriert – E-Mails werden nicht versendet, sondern nur hier abgelegt.
+          Die Links darin funktionieren trotzdem, so lässt sich der Ablauf testen.
+        </span>
+      </p>
+    }
+
+    @for (mail of box.mails; track mail.id) {
+      <details class="mail">
+        <summary class="mail-head">
+          <span class="mail-subject">{{ mail.subject }}</span>
+          <span class="mail-meta"
+            >an {{ mail.recipient }} · {{ mail.createdAt | relativeTime }}</span
+          >
+          <span
+            class="mail-status"
+            [class.sent]="mail.status === 'SENT'"
+            [class.failed]="mail.status === 'FAILED'"
+            >{{ statusLabel(mail.status) }}</span
+          >
+        </summary>
+        @if (mail.error) {
+          <p class="field-error">{{ mail.error }}</p>
+        }
+        <div class="mail-body">
+          @for (part of linkify(mail.body); track $index) {
+            @if (part.href) {
+              <a [href]="part.href" target="_blank" rel="noopener">{{ part.text }}</a>
+            } @else {
+              <span>{{ part.text }}</span>
+            }
+          }
+        </div>
+        @if (mail.applicationId) {
+          <a class="mail-link" [routerLink]="['/applications', mail.applicationId]"
+            >Zur Bewerbung</a
+          >
+        }
+      </details>
+    } @empty {
+      <div class="empty">Noch keine E-Mails.</div>
+    }
+  } @else if (outbox.isLoading()) {
+    <span class="skeleton sk-outbox"></span>
+  }
+</div>

@@ -69,6 +69,7 @@ export function makeSummary(overrides: Partial<ApplicationSummary> = {}): Applic
     overallScore: 84,
     skills: ['Java', 'Spring Boot', 'PostgreSQL', 'AWS'],
     unread: false,
+    talentPool: null,
     ...overrides,
   };
 }
@@ -146,6 +147,7 @@ export function makeDetail(overrides: Partial<ApplicationDetail> = {}): Applicat
     },
     analysis: makeAnalysis(),
     unread: false,
+    talentPool: null,
     ...overrides,
   };
 }

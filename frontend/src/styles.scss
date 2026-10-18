@@ -371,6 +371,22 @@ lucide-icon {
   background: var(--tm-blue-tint);
   color: var(--tm-blue-pressed);
 }
+/* Evidenz-Status (Pipeline-Karte, Detailansicht, Evidenz-Liste) */
+.pool-tag {
+  display: inline-block;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--tm-yellow-bg);
+  color: var(--tm-yellow-fg);
+
+  &.confirmed {
+    background: var(--tm-green-bg);
+    color: var(--tm-green-fg);
+  }
+}
+
 /* „Neu“-Markierung für ungelesene Portal-Bewerbungen */
 .new-badge {
   display: inline-block;

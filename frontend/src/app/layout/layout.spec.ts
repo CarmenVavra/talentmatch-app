@@ -50,6 +50,7 @@ describe('layout', () => {
         'Stellen',
         'Pipeline',
         'Bewerber:innen',
+        'Evidenz',
       ]);
       expect(links[1].getAttribute('href')).toBe('/jobs/4/pipeline');
       expect(root.querySelector('.role-chip')?.textContent).toContain('HR-Manager');

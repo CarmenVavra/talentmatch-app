@@ -59,6 +59,11 @@ export interface MyApplication {
   resumeFileName: string | null;
   skillProfileFileName: string | null;
   coverLetterFileName: string | null;
+  talentPoolStatus: TalentPoolStatus | null;
+  /** Schlüssel für die Antwortseite /evidenz/:token (nur für die eigene Bewerbung). */
+  talentPoolToken: string | null;
+  talentPoolDeadline: string | null;
+  talentPoolExpiresAt: string | null;
 }
 
 /** Bewerbungsunterlagen (PDF): Lebenslauf ist Pflicht, Skill-Profil und Anschreiben sind optional. */
@@ -66,6 +71,63 @@ export interface ApplicationDocuments {
   resume: File;
   skillProfile: File | null;
   coverLetter: File | null;
+}
+
+/** Evidenz: angefragt (Antwort ausstehend) oder bestätigt. */
+export type TalentPoolStatus = 'REQUESTED' | 'CONFIRMED';
+
+export interface TalentPoolInfo {
+  status: TalentPoolStatus;
+  requestedAt: string;
+  responseDeadline: string;
+  reminderSentAt: string | null;
+  confirmedAt: string | null;
+  expiresAt: string | null;
+}
+
+/** Vorschlag für die Evidenz-Anfrage; „[Antwort-Links]“ ersetzt der Server durch die persönlichen Links. */
+export interface TalentPoolMail {
+  recipient: string;
+  subject: string;
+  body: string;
+  deliveryEnabled: boolean;
+}
+
+export interface TalentPoolEntry {
+  applicationId: number;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  jobId: number;
+  jobTitle: string;
+  talentPool: TalentPoolInfo;
+}
+
+/** Antwortseite ohne Anmeldung. */
+export interface PublicTalentPool {
+  firstName: string;
+  jobTitle: string;
+  status: TalentPoolStatus;
+  responseDeadline: string;
+  expiresAt: string | null;
+}
+
+export type MailStatus = 'QUEUED' | 'SENT' | 'FAILED' | 'NOT_SENT';
+
+export interface OutgoingMail {
+  id: number;
+  recipient: string;
+  subject: string;
+  body: string;
+  createdAt: string;
+  status: MailStatus;
+  error: string | null;
+  applicationId: number | null;
+}
+
+export interface Outbox {
+  deliveryEnabled: boolean;
+  mails: OutgoingMail[];
 }
 
 /** Dokumentart im Backend. */
@@ -179,6 +241,7 @@ export interface ApplicationSummary {
   skills: string[];
   /** Neue Portal-Bewerbung, die HR noch nicht geöffnet hat. */
   unread: boolean;
+  talentPool: TalentPoolStatus | null;
 }
 
 export interface WorkExperience {
@@ -261,6 +324,7 @@ export interface ApplicationDetail {
   candidate: CandidateDetail;
   analysis: Analysis | null;
   unread: boolean;
+  talentPool: TalentPoolInfo | null;
 }
 
 /** RFC-9457 Problem Details, wie vom GlobalExceptionHandler geliefert. */

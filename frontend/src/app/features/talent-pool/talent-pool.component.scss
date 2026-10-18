@@ -1,0 +1,52 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .page-title {
+    margin: 0;
+  }
+}
+
+.intro {
+  margin: 0;
+  max-width: 75ch;
+  font-size: 14px;
+}
+
+.table-panel {
+  overflow-x: auto;
+}
+
+.row-title {
+  font-weight: 700;
+  text-decoration: none;
+  color: var(--tm-ink);
+
+  &:hover {
+    color: var(--tm-blue);
+    text-decoration: underline;
+  }
+}
+
+.row-sub {
+  font-size: 12px;
+  color: var(--tm-gray);
+}
+
+.empty {
+  padding: 32px;
+  background: var(--tm-surface);
+  color: var(--tm-gray);
+}
+
+.sk-table {
+  display: block;
+  height: 240px;
+}

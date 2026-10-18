@@ -1,0 +1,124 @@
+<div class="auth-page">
+  <div class="auth-panel answer">
+    <div class="brand">
+      <app-logo />
+      <span class="wordmark">TalentMatch</span>
+    </div>
+
+    @if (loading()) {
+      <span class="skeleton sk-answer"></span>
+    } @else if (outcome() === 'declined') {
+      <div>
+        <div class="kicker">Evidenz</div>
+        <h2 class="title">Ihre Unterlagen wurden gelöscht</h2>
+      </div>
+      <p class="lead-text">
+        Vielen Dank für Ihre Rückmeldung. Wir haben Ihre Bewerbungsunterlagen vollständig gelöscht
+        und wünschen Ihnen für Ihren weiteren Weg alles Gute.
+      </p>
+    } @else if (invalid()) {
+      <div>
+        <div class="kicker">Evidenz</div>
+        <h2 class="title">Dieser Link ist nicht mehr gültig</h2>
+      </div>
+      <p class="lead-text">
+        Die Anfrage wurde bereits beantwortet, ist abgelaufen oder Ihre Unterlagen wurden gelöscht.
+      </p>
+    } @else if (data(); as d) {
+      <div>
+        <div class="kicker">{{ d.jobTitle }}</div>
+        <h2 class="title">Guten Tag {{ d.firstName }}</h2>
+      </div>
+
+      @if (d.status === 'CONFIRMED') {
+        <div class="success" role="status">
+          <lucide-icon [img]="icons.check" [size]="18" aria-hidden="true" />
+          <p>
+            @if (outcome() === 'confirmed') {
+              <strong>Vielen Dank für Ihre Zustimmung!</strong>
+            }
+            Wir halten Ihre Unterlagen
+            @if (d.expiresAt) {
+              bis zum {{ d.expiresAt | deDate }}
+            }
+            in Evidenz und melden uns, sobald sich eine passende Gelegenheit ergibt.
+          </p>
+        </div>
+        @if (confirmWithdraw()) {
+          <div class="withdraw-box" role="alert">
+            <p>
+              Möchten Sie Ihre Zustimmung wirklich widerrufen? Ihre Unterlagen werden sofort
+              gelöscht.
+            </p>
+            <div class="answer-actions">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                [disabled]="busy()"
+                (click)="confirmWithdraw.set(false)"
+              >
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                class="btn btn-danger withdraw-confirm"
+                [disabled]="busy()"
+                (click)="decline()"
+              >
+                {{ busy() ? 'Wird gelöscht …' : 'Ja, Unterlagen löschen' }}
+              </button>
+            </div>
+          </div>
+        } @else {
+          <button
+            type="button"
+            class="btn btn-ghost btn-danger-text withdraw"
+            (click)="confirmWithdraw.set(true)"
+          >
+            Zustimmung widerrufen
+          </button>
+        }
+      } @else {
+        <p class="lead-text">
+          Wir würden Ihre Unterlagen gerne in Evidenz halten und uns bei Ihnen melden, sobald sich
+          eine passende Gelegenheit ergibt. Bitte antworten Sie bis zum
+          <strong>{{ d.responseDeadline | deDate }}</strong
+          >.
+        </p>
+        <p class="muted small-print">
+          Ohne Antwort löschen wir Ihre Unterlagen nach Ablauf der Frist vollständig. Ihre
+          Zustimmung können Sie jederzeit über diesen Link widerrufen.
+        </p>
+        <div class="answer-actions">
+          <button
+            type="button"
+            class="btn btn-lg confirm"
+            [class.btn-primary]="antwort() !== 'nein'"
+            [class.btn-secondary]="antwort() === 'nein'"
+            [disabled]="busy()"
+            (click)="confirm()"
+          >
+            Ja, gerne in Evidenz bleiben
+          </button>
+          <button
+            type="button"
+            class="btn btn-lg decline"
+            [class.btn-primary]="antwort() === 'nein'"
+            [class.btn-secondary]="antwort() !== 'nein'"
+            [disabled]="busy()"
+            (click)="decline()"
+          >
+            Nein, danke
+          </button>
+        </div>
+      }
+    }
+
+    @if (error(); as message) {
+      <div class="alert" role="alert">
+        <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+        <span>{{ message }}</span>
+      </div>
+    }
+  </div>
+</div>

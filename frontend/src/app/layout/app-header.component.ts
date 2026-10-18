@@ -16,7 +16,8 @@ import { JobStore } from '../core/state/job.store';
 import { ICONS } from '../shared/icons';
 import { LogoComponent } from '../shared/logo.component';
 
-type NavKey = 'jobs' | 'pipeline' | 'candidates' | 'portal-jobs' | 'portal-applications';
+type NavKey =
+  'jobs' | 'pipeline' | 'candidates' | 'talent-pool' | 'portal-jobs' | 'portal-applications';
 
 interface NavItem {
   key: NavKey;
@@ -68,6 +69,9 @@ export class AppHeaderComponent {
     if (url.startsWith('/candidates') || url.startsWith('/applications')) {
       return 'candidates';
     }
+    if (url.startsWith('/talent-pool')) {
+      return 'talent-pool';
+    }
     return null;
   });
 
@@ -87,6 +91,7 @@ export class AppHeaderComponent {
         link: pipelineJobId ? ['/jobs', String(pipelineJobId), 'pipeline'] : ['/jobs'],
       },
       { key: 'candidates', label: 'Bewerber:innen', link: ['/candidates'] },
+      { key: 'talent-pool', label: 'Evidenz', link: ['/talent-pool'] },
     ];
   });
 

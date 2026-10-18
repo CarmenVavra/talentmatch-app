@@ -1,0 +1,41 @@
+.mail-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.recipient {
+  font-weight: 600;
+  color: var(--tm-ink);
+}
+
+.mail-body {
+  min-height: 280px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--tm-gray);
+}
+
+code {
+  padding: 0 3px;
+  font-size: 12px;
+  background: var(--tm-track);
+}
+
+.delivery-hint {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  font-size: 13px;
+  background: var(--tm-yellow-surface);
+  border-left: 4px solid var(--tm-yellow-bar);
+}
+
+.sk-mail {
+  display: block;
+  height: 280px;
+}

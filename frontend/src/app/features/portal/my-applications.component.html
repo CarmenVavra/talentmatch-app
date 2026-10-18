@@ -55,6 +55,35 @@
               }}</span>
             </div>
             <p class="message">{{ m.message }}</p>
+            @if (application.talentPoolToken) {
+              @if (application.talentPoolStatus === 'REQUESTED') {
+                <div class="pool-box pool-request">
+                  <strong>Dürfen wir Ihre Unterlagen in Evidenz halten?</strong>
+                  <span
+                    >Wir melden uns, sobald sich eine passende Gelegenheit ergibt. Bitte antworten
+                    Sie bis zum {{ application.talentPoolDeadline | deDate }}.</span
+                  >
+                  <a
+                    class="btn btn-primary pool-answer"
+                    [routerLink]="['/evidenz', application.talentPoolToken]"
+                    >Jetzt antworten</a
+                  >
+                </div>
+              } @else if (application.talentPoolStatus === 'CONFIRMED') {
+                <div class="pool-box pool-confirmed">
+                  <span
+                    >Ihre Unterlagen sind in Evidenz{{
+                      application.talentPoolExpiresAt
+                        ? ' bis zum ' + (application.talentPoolExpiresAt | deDate)
+                        : ''
+                    }}.</span
+                  >
+                  <a [routerLink]="['/evidenz', application.talentPoolToken]"
+                    >Zustimmung verwalten</a
+                  >
+                </div>
+              }
+            }
             @let docs = documents(application);
             @if (docs.length) {
               <span class="documents">

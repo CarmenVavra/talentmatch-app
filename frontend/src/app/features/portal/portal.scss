@@ -240,3 +240,23 @@
 .sk-row {
   height: 140px;
 }
+
+/* Evidenz-Anfrage in „Meine Bewerbungen“ */
+.pool-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+}
+
+.pool-request {
+  background: var(--tm-yellow-surface);
+  border-left: 4px solid var(--tm-yellow-bar);
+}
+
+.pool-confirmed {
+  background: var(--tm-green-surface);
+  border-left: 4px solid var(--tm-green-bar);
+}

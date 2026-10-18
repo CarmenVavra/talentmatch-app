@@ -10,6 +10,7 @@ import {
   DocumentKind,
   Duplicate,
   MergeRequest,
+  TalentPoolMail,
   UploadInspection,
 } from '../models/api.models';
 
@@ -80,6 +81,24 @@ export class ApplicationApiService {
       observe: 'events',
       reportProgress: true,
     });
+  }
+
+  /** Löscht die Bewerbung endgültig (inkl. Unterlagen, Analyse und E-Mails). */
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`/api/applications/${id}`);
+  }
+
+  /** Vorschlag für die Evidenz-Anfrage (Empfänger:in, Betreff, Text). */
+  talentPoolPreview(id: number): Observable<TalentPoolMail> {
+    return this.http.get<TalentPoolMail>(`/api/applications/${id}/talent-pool/preview`);
+  }
+
+  /** Absage mit Evidenz-Anfrage: legt die E-Mail in den Postausgang bzw. versendet sie. */
+  requestTalentPool(
+    id: number,
+    mail: { subject: string; body: string },
+  ): Observable<ApplicationDetail> {
+    return this.http.post<ApplicationDetail>(`/api/applications/${id}/talent-pool`, mail);
   }
 
   /** Andere Bewerbungen derselben Person auf diese Stelle. */

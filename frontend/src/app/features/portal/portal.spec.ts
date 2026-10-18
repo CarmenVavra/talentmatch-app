@@ -44,6 +44,10 @@ function myApplication(overrides: Partial<MyApplication> = {}): MyApplication {
     resumeFileName: 'cv.pdf',
     skillProfileFileName: null,
     coverLetterFileName: null,
+    talentPoolStatus: null,
+    talentPoolToken: null,
+    talentPoolDeadline: null,
+    talentPoolExpiresAt: null,
     ...overrides,
   };
 }
@@ -388,6 +392,32 @@ describe('portal', () => {
       expect(root.querySelector('.documents')?.textContent).toContain('Eingereicht: Lebenslauf');
       expect(root.querySelector('.job-link')?.getAttribute('href')).toBe('/portal/jobs/3');
       expect(root.textContent).not.toContain('Score');
+    });
+
+    it('asks portal applicants to answer a talent pool request', async () => {
+      const fixture = TestBed.createComponent(MyApplicationsComponent);
+      await fixture.whenStable();
+      http.expectOne('/api/applicant/applications').flush([
+        myApplication({
+          status: 'REJECTED',
+          talentPoolStatus: 'REQUESTED',
+          talentPoolToken: 'abc',
+          talentPoolDeadline: '2026-11-01T09:00:00',
+        }),
+        myApplication({
+          id: 2,
+          status: 'REJECTED',
+          talentPoolStatus: 'CONFIRMED',
+          talentPoolToken: 'def',
+          talentPoolExpiresAt: '2028-10-19T09:00:00',
+        }),
+      ]);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(root.querySelector('.pool-request')?.textContent).toContain('01.11.2026');
+      expect(root.querySelector('.pool-answer')?.getAttribute('href')).toBe('/evidenz/abc');
+      expect(root.querySelector('.pool-confirmed')?.textContent).toContain('19.10.2028');
     });
 
     it('shows an empty state', async () => {

@@ -34,6 +34,7 @@ export function toSummary(detail: ApplicationDetail): ApplicationSummary {
       detail.candidate.profile?.technologies ?? [],
     ),
     unread: detail.unread,
+    talentPool: detail.talentPool?.status ?? null,
   };
 }
 

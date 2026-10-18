@@ -20,6 +20,15 @@ export const routes: Routes = [
       import('./features/auth/register.component').then((m) => m.RegisterComponent),
   },
   {
+    // Antwortseite der Evidenz-Anfrage – ohne Anmeldung, Zugang über den persönlichen Link
+    path: 'evidenz/:token',
+    title: 'Evidenz · TalentMatch',
+    loadComponent: () =>
+      import('./features/talent-pool/talent-pool-answer.component').then(
+        (m) => m.TalentPoolAnswerComponent,
+      ),
+  },
+  {
     path: '',
     component: ShellComponent,
     canActivate: [authGuard],
@@ -102,6 +111,20 @@ export const routes: Routes = [
               import('./features/application-detail/application-detail.component').then(
                 (m) => m.ApplicationDetailComponent,
               ),
+          },
+          {
+            path: 'talent-pool',
+            title: 'Evidenz · TalentMatch',
+            loadComponent: () =>
+              import('./features/talent-pool/talent-pool.component').then(
+                (m) => m.TalentPoolComponent,
+              ),
+          },
+          {
+            path: 'outbox',
+            title: 'Postausgang · TalentMatch',
+            loadComponent: () =>
+              import('./features/outbox/outbox.component').then((m) => m.OutboxComponent),
           },
           {
             path: 'candidates',

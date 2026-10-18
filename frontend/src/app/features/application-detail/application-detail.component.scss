@@ -284,3 +284,20 @@ a.contact-item:hover {
 .duplicate-docs {
   color: var(--tm-ink-2);
 }
+
+.secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.pool-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  font-size: 13px;
+}

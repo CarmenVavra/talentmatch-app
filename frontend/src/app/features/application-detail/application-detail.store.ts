@@ -1,6 +1,7 @@
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
+  Observable,
   Subject,
   catchError,
   debounceTime,
@@ -18,6 +19,7 @@ import {
   DocumentKind,
   Duplicate,
   MergeRequest,
+  TalentPoolMail,
 } from '../../core/models/api.models';
 import { JobStore } from '../../core/state/job.store';
 import { ToastService } from '../../core/state/toast.service';
@@ -59,6 +61,8 @@ export class ApplicationDetailStore {
   /** Andere Bewerbungen derselben Person auf diese Stelle. */
   readonly duplicates = signal<Duplicate[]>([]);
   readonly merging = signal(false);
+  readonly requestingTalentPool = signal(false);
+  readonly deleting = signal(false);
   /** Blob-URLs der geladenen Original-PDFs je Unterlage. */
   readonly documentUrls = signal<ByDocument<string>>({});
   readonly documentLoading = signal<ByDocument<boolean>>({});
@@ -256,6 +260,69 @@ export class ApplicationDetailStore {
           this.toast.error(
             errorMessage(err, 'Die Bewerbungen konnten nicht zusammengeführt werden.'),
           );
+          done(false);
+        },
+      });
+  }
+
+  /** Vorschlag für die Evidenz-Anfrage (Empfänger:in, Betreff, Text). */
+  talentPoolPreview(): Observable<TalentPoolMail> {
+    return this.api.talentPoolPreview(this.requireId());
+  }
+
+  /** Absage mit Evidenz-Anfrage; {@code done} meldet, ob es geklappt hat. */
+  requestTalentPool(
+    mail: { subject: string; body: string },
+    deliveryEnabled: boolean,
+    done: (success: boolean) => void,
+  ): void {
+    if (this.requestingTalentPool()) {
+      return;
+    }
+    this.requestingTalentPool.set(true);
+    this.api
+      .requestTalentPool(this.requireId(), mail)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (detail) => {
+          this.detail.set(detail);
+          this.requestingTalentPool.set(false);
+          this.toast.success(
+            deliveryEnabled
+              ? 'Die Evidenz-Anfrage wurde verschickt.'
+              : 'Die Evidenz-Anfrage liegt im Postausgang (kein Mailserver konfiguriert).',
+          );
+          done(true);
+        },
+        error: (err: unknown) => {
+          this.requestingTalentPool.set(false);
+          this.toast.error(errorMessage(err, 'Die Evidenz-Anfrage konnte nicht gesendet werden.'));
+          done(false);
+        },
+      });
+  }
+
+  /** Löscht die Bewerbung endgültig; {@code done} meldet, ob es geklappt hat. */
+  deleteApplication(done: (success: boolean) => void): void {
+    const current = this.detail();
+    if (!current || this.deleting()) {
+      return;
+    }
+    this.deleting.set(true);
+    this.api
+      .delete(current.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.deleting.set(false);
+          this.toast.success(
+            `Die Bewerbung von ${current.candidate.firstName} ${current.candidate.lastName} wurde gelöscht.`,
+          );
+          done(true);
+        },
+        error: (err: unknown) => {
+          this.deleting.set(false);
+          this.toast.error(errorMessage(err, 'Die Bewerbung konnte nicht gelöscht werden.'));
           done(false);
         },
       });

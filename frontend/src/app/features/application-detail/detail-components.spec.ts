@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 
 import { Duplicate } from '../../core/models/api.models';
 import { makeAnalysis, makeDetail, makeDuplicate } from '../../testing/test-data';
@@ -114,6 +114,76 @@ describe('detail components', () => {
       );
       expect(lines.map((l) => l.querySelector('.self-reported') !== null)).toEqual([false, true]);
       expect(lines[1].textContent).toContain('laut Skill-Profil');
+    });
+
+    it('asks for talent pool consent with an editable mail', async () => {
+      const fixture = await render(makeDetail({ status: 'INTERVIEW' }));
+      const root = fixture.nativeElement as HTMLElement;
+      (root.querySelector('.talent-pool-button') as HTMLButtonElement).click();
+      await fixture.whenStable();
+
+      http.expectOne('/api/applications/10/talent-pool/preview').flush({
+        recipient: 'lena@example.org',
+        subject: 'Ihre Bewerbung als Senior Java Developer',
+        body: 'Guten Tag Lena Hoffmann,\n\n[Antwort-Links]\n\nMit freundlichen Grüßen',
+        deliveryEnabled: false,
+      });
+      await fixture.whenStable();
+      const dialog = root.querySelector('app-talent-pool-dialog') as HTMLElement;
+      expect(dialog.textContent).toContain('lena@example.org');
+      expect(dialog.querySelector('.delivery-hint')).not.toBeNull();
+
+      const subject = dialog.querySelector('#pool-subject') as HTMLInputElement;
+      subject.value = 'Ihre Bewerbung bei uns';
+      subject.dispatchEvent(new Event('input'));
+      await fixture.whenStable();
+      (dialog.querySelector('.confirm') as HTMLButtonElement).click();
+
+      const request = http.expectOne('/api/applications/10/talent-pool');
+      expect(request.request.body).toEqual({
+        subject: 'Ihre Bewerbung bei uns',
+        body: 'Guten Tag Lena Hoffmann,\n\n[Antwort-Links]\n\nMit freundlichen Grüßen',
+      });
+      request.flush(
+        makeDetail({
+          status: 'REJECTED',
+          talentPool: {
+            status: 'REQUESTED',
+            requestedAt: '2026-10-18T09:00:00',
+            responseDeadline: '2026-11-01T09:00:00',
+            reminderSentAt: null,
+            confirmedAt: null,
+            expiresAt: null,
+          },
+        }),
+      );
+      await fixture.whenStable();
+      expect(root.querySelector('app-talent-pool-dialog')).toBeNull();
+      expect(root.querySelector('.pool-status')?.textContent).toContain('Antwort bis 01.11.2026');
+      expect((root.querySelector('.talent-pool-button') as HTMLButtonElement).disabled).toBeTrue();
+    });
+
+    it('cannot ask for consent without an e-mail address', async () => {
+      const detail = makeDetail();
+      const fixture = await render({ ...detail, candidate: { ...detail.candidate, email: null } });
+      expect(
+        (fixture.nativeElement.querySelector('.talent-pool-button') as HTMLButtonElement).disabled,
+      ).toBeTrue();
+    });
+
+    it('deletes the application after confirmation and returns to the pipeline', async () => {
+      const fixture = await render();
+      const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+      const root = fixture.nativeElement as HTMLElement;
+      (root.querySelector('.delete-application') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      expect(root.querySelector('app-confirm-dialog')?.textContent).toContain('endgültig gelöscht');
+
+      (root.querySelector('app-confirm-dialog .confirm') as HTMLButtonElement).click();
+      const request = http.expectOne('/api/applications/10');
+      expect(request.request.method).toBe('DELETE');
+      request.flush(null);
+      expect(navigate).toHaveBeenCalledWith(['/jobs', 1, 'pipeline']);
     });
 
     it('changes the status via the action buttons', async () => {

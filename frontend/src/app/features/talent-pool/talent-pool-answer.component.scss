@@ -1,0 +1,75 @@
+.answer {
+  width: min(520px, 100%);
+}
+
+.lead-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.small-print {
+  margin: 0;
+  font-size: 13px;
+}
+
+.answer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+
+  .btn {
+    flex: 1 1 200px;
+    justify-content: center;
+  }
+}
+
+.success {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 16px;
+  background: var(--tm-green-surface);
+  border-left: 4px solid var(--tm-green-bar);
+  font-size: 14px;
+
+  lucide-icon {
+    flex: none;
+    color: var(--tm-green-bar);
+    margin-top: 2px;
+  }
+
+  p {
+    margin: 0;
+    line-height: 1.6;
+  }
+}
+
+.withdraw {
+  align-self: flex-start;
+}
+
+.withdraw-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--tm-red-surface);
+  border-left: 4px solid var(--tm-red-bar);
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.btn-danger {
+  color: #fff;
+  background: var(--tm-red-bar);
+  border-color: var(--tm-red-bar);
+}
+
+.sk-answer {
+  display: block;
+  height: 180px;
+}

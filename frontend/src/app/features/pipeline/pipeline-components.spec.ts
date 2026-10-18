@@ -24,6 +24,15 @@ describe('CandidateCardComponent', () => {
     expect(root.querySelector('.new-badge')).toBeNull();
   });
 
+  it('shows the talent pool state on the card', async () => {
+    const fixture = TestBed.createComponent(CandidateCardComponent);
+    fixture.componentRef.setInput('application', makeSummary({ talentPool: 'CONFIRMED' }));
+    await fixture.whenStable();
+    const tag = fixture.nativeElement.querySelector('.pool-tag') as HTMLElement;
+    expect(tag.textContent).toContain('In Evidenz');
+    expect(tag.classList).toContain('confirmed');
+  });
+
   it('marks new portal applications', async () => {
     const fixture = TestBed.createComponent(CandidateCardComponent);
     fixture.componentRef.setInput('application', makeSummary({ unread: true }));
