@@ -20,6 +20,13 @@ export const routes: Routes = [
       import('./features/auth/register.component').then((m) => m.RegisterComponent),
   },
   {
+    // Datenschutzhinweise – öffentlich (auch vor der Registrierung)
+    path: 'datenschutz',
+    title: 'Datenschutz · TalentMatch',
+    loadComponent: () =>
+      import('./features/privacy/privacy.component').then((m) => m.PrivacyComponent),
+  },
+  {
     // Antwortseite der Evidenz-Anfrage – ohne Anmeldung, Zugang über den persönlichen Link
     path: 'evidenz/:token',
     title: 'Evidenz · TalentMatch',
@@ -42,6 +49,13 @@ export const routes: Routes = [
           import('./features/auth/change-password.component').then(
             (m) => m.ChangePasswordComponent,
           ),
+      },
+      {
+        path: 'account/delete',
+        canActivate: [applicantGuard],
+        title: 'Konto löschen · TalentMatch',
+        loadComponent: () =>
+          import('./features/auth/delete-account.component').then((m) => m.DeleteAccountComponent),
       },
       {
         path: 'portal',

@@ -21,6 +21,16 @@ export class ApplicantApiService {
     return this.http.get<MyApplication[]>('/api/applicant/applications');
   }
 
+  /** Zieht eine eigene Bewerbung zurück – sie wird samt Unterlagen gelöscht. */
+  withdraw(applicationId: number): Observable<void> {
+    return this.http.delete<void>(`/api/applicant/applications/${applicationId}`);
+  }
+
+  /** Löscht das eigene Konto samt allen Bewerbungen (Bestätigung mit dem Passwort). */
+  deleteAccount(password: string): Observable<void> {
+    return this.http.post<void>('/api/applicant/account/delete', { password });
+  }
+
   /** Multipart: „file“ (Lebenslauf) sowie optional „skillProfile“ und „coverLetter“. */
   apply(jobId: number, documents: ApplicationDocuments): Observable<MyApplication> {
     const body = new FormData();

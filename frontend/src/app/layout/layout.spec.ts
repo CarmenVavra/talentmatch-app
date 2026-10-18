@@ -74,7 +74,10 @@ describe('layout', () => {
       (root.querySelector('.account-button') as HTMLButtonElement).click();
       await fixture.whenStable();
       expect(root.querySelector('.menu')?.textContent).toContain('Passwort ändern');
+      expect(root.querySelector('.menu')?.textContent).toContain('Datenschutz');
+      expect(root.querySelector('.menu')?.textContent).toContain('Konto löschen');
       expect(root.querySelector('.menu')?.textContent).toContain('Abmelden');
+      expect(root.querySelector('.menu')?.textContent).not.toContain('Postausgang');
     });
   });
 

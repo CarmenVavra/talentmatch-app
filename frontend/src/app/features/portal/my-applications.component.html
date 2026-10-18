@@ -85,12 +85,22 @@
               }
             }
             @let docs = documents(application);
-            @if (docs.length) {
-              <span class="documents">
-                <lucide-icon [img]="icons.fileText" [size]="14" aria-hidden="true" />
-                Eingereicht: {{ docs.join(' · ') }}
-              </span>
-            }
+            <div class="application-foot">
+              @if (docs.length) {
+                <span class="documents">
+                  <lucide-icon [img]="icons.fileText" [size]="14" aria-hidden="true" />
+                  Eingereicht: {{ docs.join(' · ') }}
+                </span>
+              }
+              <button
+                type="button"
+                class="btn btn-ghost btn-danger-text withdraw"
+                (click)="withdrawTarget.set(application)"
+              >
+                <lucide-icon [img]="icons.trash" [size]="14" aria-hidden="true" />
+                Bewerbung zurückziehen
+              </button>
+            </div>
           </div>
           <ol class="steps" aria-label="Fortschritt der Bewerbung">
             @for (step of steps(application.status); track $index) {
@@ -107,5 +117,22 @@
         </article>
       }
     </div>
+  }
+
+  @if (withdrawTarget(); as target) {
+    <app-confirm-dialog
+      title="Bewerbung zurückziehen?"
+      confirmLabel="Zurückziehen"
+      busyLabel="Wird zurückgezogen …"
+      [danger]="true"
+      [busy]="withdrawing()"
+      (confirmed)="withdraw(target)"
+      (cancelled)="withdrawTarget.set(null)"
+    >
+      <p>
+        Ihre Bewerbung als <strong>{{ target.jobTitle }}</strong> wird mit allen Unterlagen
+        endgültig gelöscht. Sie können sich danach erneut auf die Stelle bewerben.
+      </p>
+    </app-confirm-dialog>
   }
 </div>

@@ -1,0 +1,88 @@
+<div class="privacy-page">
+  <article class="privacy">
+    <a class="brand" [routerLink]="auth.isAuthenticated() ? auth.homeUrl() : '/login'">
+      <app-logo />
+      <span class="wordmark">TalentMatch</span>
+    </a>
+
+    <div>
+      <div class="kicker">Datenschutz</div>
+      <h1 class="page-title">Datenschutzhinweise für Bewerber:innen</h1>
+      <p class="muted">
+        Hier erfahren Sie, welche Daten wir im Bewerbungsprozess verarbeiten, wie lange wir sie
+        speichern und welche Rechte Sie haben.
+      </p>
+    </div>
+
+    <section>
+      <h2>Welche Daten wir verarbeiten</h2>
+      <ul>
+        <li>
+          Ihre Kontodaten: Vor- und Nachname, E-Mail-Adresse und ein verschlüsseltes Passwort.
+        </li>
+        <li>
+          Ihre Bewerbungsunterlagen: Lebenslauf sowie optional Skill-Profil und Anschreiben, und die
+          daraus gelesenen Angaben (z. B. Berufserfahrung, Ausbildung, Kenntnisse).
+        </li>
+        <li>Den Status Ihrer Bewerbungen und die E-Mails, die wir Ihnen dazu senden.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Wofür wir die Daten nutzen</h2>
+      <p>
+        Ausschließlich für die Durchführung des Bewerbungsverfahrens: um Ihre Unterlagen zu prüfen,
+        mit Ihnen in Kontakt zu treten und über eine Einstellung zu entscheiden.
+      </p>
+    </section>
+
+    <section>
+      <h2>KI-gestützte Auswertung</h2>
+      <p>
+        Zur Unterstützung des Recruiting-Teams werden Ihre Unterlagen mit Hilfe eines KI-Dienstes
+        (OpenAI) mit den Anforderungen der Stelle abgeglichen. Dafür wird der Text Ihrer Unterlagen
+        an diesen Dienst übermittelt. Die KI trifft keine Entscheidung: Ob Sie eingeladen werden,
+        entscheiden immer Menschen.
+      </p>
+    </section>
+
+    <section>
+      <h2>Wie lange wir die Daten speichern</h2>
+      <ul>
+        <li>Während des laufenden Bewerbungsverfahrens.</li>
+        <li>
+          Nach einer Absage löschen wir Ihre Bewerbung automatisch nach <strong>6 Monaten</strong>.
+        </li>
+        <li>
+          Fragen wir Sie, ob wir Ihre Unterlagen in Evidenz halten dürfen, und Sie antworten nicht,
+          löschen wir sie nach <strong>14 Tagen</strong>. Mit Ihrer Zustimmung bewahren wir sie
+          höchstens <strong>24 Monate</strong> auf.
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Ihre Rechte</h2>
+      <p>
+        Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung
+        Ihrer Daten sowie das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Im
+        Bewerber-Portal können Sie selbst:
+      </p>
+      <ul>
+        <li>unter „Meine Bewerbungen“ eine Bewerbung zurückziehen – sie wird sofort gelöscht,</li>
+        <li>
+          über das Konto-Menü Ihr Konto löschen – alle Ihre Bewerbungen werden dabei mitgelöscht.
+        </li>
+      </ul>
+    </section>
+
+    <p class="note">
+      <lucide-icon [img]="icons.shield" [size]="16" aria-hidden="true" />
+      <span
+        >Musterhinweis für diese Demo-Anwendung. Vor einem produktiven Einsatz sind die Angaben zur
+        verantwortlichen Stelle, zur Datenschutzbeauftragten und zu den Rechtsgrundlagen zu
+        ergänzen.</span
+      >
+    </p>
+  </article>
+</div>

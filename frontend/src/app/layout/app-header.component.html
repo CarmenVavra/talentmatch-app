@@ -47,6 +47,26 @@
               <lucide-icon [img]="icons.key" [size]="15" aria-hidden="true" />
               Passwort ändern
             </a>
+            @if (!auth.isHrManager()) {
+              <a
+                class="menu-item"
+                role="menuitem"
+                routerLink="/datenschutz"
+                (click)="menuOpen.set(false)"
+              >
+                <lucide-icon [img]="icons.shield" [size]="15" aria-hidden="true" />
+                Datenschutz
+              </a>
+              <a
+                class="menu-item"
+                role="menuitem"
+                routerLink="/account/delete"
+                (click)="menuOpen.set(false)"
+              >
+                <lucide-icon [img]="icons.userX" [size]="15" aria-hidden="true" />
+                Konto löschen
+              </a>
+            }
             @if (auth.isHrManager()) {
               <a
                 class="menu-item"

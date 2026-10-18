@@ -33,6 +33,7 @@ export class RegisterComponent {
       email: ['', [Validators.required, Validators.email]],
       newPassword: ['', [Validators.required, Validators.minLength(8), Validators.maxLength(100)]],
       confirmPassword: ['', Validators.required],
+      privacyAccepted: [false, Validators.requiredTrue],
     },
     { validators: passwordsMatch },
   );
@@ -57,6 +58,7 @@ export class RegisterComponent {
         lastName: value.lastName.trim(),
         email: value.email.trim(),
         password: value.newPassword,
+        privacyAccepted: value.privacyAccepted,
       })
       .subscribe({
         next: () => void this.router.navigateByUrl('/portal/jobs'),

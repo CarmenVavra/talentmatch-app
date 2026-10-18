@@ -1,0 +1,66 @@
+<div class="page">
+  <div>
+    <div class="kicker">Konto</div>
+    <h1 class="page-title">Konto löschen</h1>
+  </div>
+
+  <div class="panel-box">
+    <p class="lead">Wenn Sie Ihr Konto löschen, entfernen wir endgültig:</p>
+    <ul class="consequences">
+      <li>Ihr Konto mit Name, E-Mail-Adresse und Passwort,</li>
+      <li>alle Ihre Bewerbungen inklusive Unterlagen und Auswertungen,</li>
+      <li>alle E-Mails, die wir Ihnen dazu geschickt haben.</li>
+    </ul>
+    <p class="lead muted">
+      Das lässt sich nicht rückgängig machen. Mehr dazu in den
+      <a routerLink="/datenschutz">Datenschutzhinweisen</a>.
+    </p>
+
+    @if (error(); as message) {
+      <div class="alert" role="alert">
+        <lucide-icon [img]="icons.alert" [size]="16" aria-hidden="true" />
+        <span>{{ message }}</span>
+      </div>
+    }
+
+    <form class="form" [formGroup]="form" (ngSubmit)="askConfirmation()" novalidate>
+      <div class="field">
+        <label for="password">Zur Bestätigung: Ihr Passwort</label>
+        <input
+          id="password"
+          class="input"
+          type="password"
+          formControlName="password"
+          autocomplete="current-password"
+          [class.is-invalid]="form.controls.password.touched && form.controls.password.invalid"
+        />
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <span class="field-error">Bitte Ihr Passwort eingeben.</span>
+        }
+      </div>
+      <div class="actions">
+        <button type="submit" class="btn btn-secondary btn-lg btn-danger-text">
+          <lucide-icon [img]="icons.userX" [size]="16" aria-hidden="true" />
+          Konto endgültig löschen
+        </button>
+        <button type="button" class="btn btn-ghost btn-lg" (click)="location.back()">
+          Abbrechen
+        </button>
+      </div>
+    </form>
+  </div>
+
+  @if (confirmOpen()) {
+    <app-confirm-dialog
+      title="Konto wirklich löschen?"
+      confirmLabel="Endgültig löschen"
+      busyLabel="Wird gelöscht …"
+      [danger]="true"
+      [busy]="deleting()"
+      (confirmed)="deleteAccount()"
+      (cancelled)="confirmOpen.set(false)"
+    >
+      <p>Ihr Konto und alle Ihre Bewerbungen werden sofort und endgültig gelöscht.</p>
+    </app-confirm-dialog>
+  }
+</div>

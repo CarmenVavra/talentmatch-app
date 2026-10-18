@@ -5,8 +5,10 @@ import { FormControl, FormGroup } from '@angular/forms';
 import { Router, provideRouter } from '@angular/router';
 
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastService } from '../../core/state/toast.service';
 import { makeUser } from '../../testing/test-data';
 import { ChangePasswordComponent, passwordsMatch } from './change-password.component';
+import { DeleteAccountComponent } from './delete-account.component';
 import { LoginComponent } from './login.component';
 import { RegisterComponent } from './register.component';
 
@@ -135,7 +137,7 @@ describe('auth pages', () => {
   });
 
   describe('RegisterComponent', () => {
-    async function fillAndSubmit(confirm = 'geheim-123') {
+    async function fillAndSubmit(confirm = 'geheim-123', acceptPrivacy = true) {
       const fixture = TestBed.createComponent(RegisterComponent);
       await fixture.whenStable();
       const root = fixture.nativeElement as HTMLElement;
@@ -144,6 +146,9 @@ describe('auth pages', () => {
       setValue(root, '#email', 'max@example.org');
       setValue(root, '#newPassword', 'geheim-123');
       setValue(root, '#confirmPassword', confirm);
+      if (acceptPrivacy) {
+        (root.querySelector('.consent input') as HTMLInputElement).click();
+      }
       (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
       await fixture.whenStable();
       return fixture;
@@ -158,6 +163,7 @@ describe('auth pages', () => {
         lastName: 'Mustermann',
         email: 'max@example.org',
         password: 'geheim-123',
+        privacyAccepted: true,
       });
       req.flush({
         token: 't',
@@ -174,6 +180,14 @@ describe('auth pages', () => {
       expect(fixture.nativeElement.textContent).toContain('Die Passwörter stimmen nicht überein.');
     });
 
+    it('requires the privacy notice and links to it', async () => {
+      const fixture = await fillAndSubmit('geheim-123', false);
+      http.expectNone('/api/auth/register');
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.textContent).toContain('Bitte bestätigen Sie die Datenschutzhinweise.');
+      expect(root.querySelector('.consent a')?.getAttribute('href')).toBe('/datenschutz');
+    });
+
     it('shows a conflict for existing accounts', async () => {
       const fixture = await fillAndSubmit();
       http
@@ -186,6 +200,68 @@ describe('auth pages', () => {
       expect(fixture.nativeElement.querySelector('.alert').textContent).toContain(
         'existiert bereits ein Konto',
       );
+    });
+  });
+
+  describe('DeleteAccountComponent', () => {
+    function signInApplicant(): void {
+      TestBed.inject(AuthService).login('max@example.org', 'secret').subscribe();
+      http.expectOne('/api/auth/login').flush({
+        token: 't',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        user: makeUser({ role: 'APPLICANT', email: 'max@example.org' }),
+      });
+    }
+
+    async function confirmDeletion() {
+      const fixture = TestBed.createComponent(DeleteAccountComponent);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      setValue(root, '#password', 'geheim-123');
+      (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+      await fixture.whenStable();
+      (root.querySelector('app-confirm-dialog .confirm') as HTMLButtonElement).click();
+      return fixture;
+    }
+
+    it('asks for the password before anything is deleted', async () => {
+      const fixture = TestBed.createComponent(DeleteAccountComponent);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      (root.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+      await fixture.whenStable();
+      expect(root.textContent).toContain('Bitte Ihr Passwort eingeben.');
+      expect(root.querySelector('app-confirm-dialog')).toBeNull();
+    });
+
+    it('deletes the account after confirmation and signs out', async () => {
+      signInApplicant();
+      const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+      await confirmDeletion();
+
+      const req = http.expectOne('/api/applicant/account/delete');
+      expect(req.request.body).toEqual({ password: 'geheim-123' });
+      req.flush(null);
+
+      expect(TestBed.inject(AuthService).isAuthenticated()).toBeFalse();
+      expect(navigate).toHaveBeenCalledWith(['/login']);
+      expect(TestBed.inject(ToastService).toasts()[0].message).toContain('Konto');
+    });
+
+    it('shows a wrong password and keeps the account', async () => {
+      signInApplicant();
+      const fixture = await confirmDeletion();
+      http
+        .expectOne('/api/applicant/account/delete')
+        .flush(
+          { detail: 'Das Passwort ist nicht korrekt.' },
+          { status: 400, statusText: 'Bad Request' },
+        );
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+      expect(root.querySelector('.alert')?.textContent).toContain('nicht korrekt');
+      expect(root.querySelector('app-confirm-dialog')).toBeNull();
+      expect(TestBed.inject(AuthService).isAuthenticated()).toBeTrue();
     });
   });
 });

@@ -29,6 +29,8 @@ export interface RegisterRequest {
   lastName: string;
   email: string;
   password: string;
+  /** Datenschutzhinweise gelesen (Pflicht). */
+  privacyAccepted: boolean;
 }
 
 /** Für Bewerber:innen sichtbarer Status (interne Schritte wie „KI-analysiert“ sind ausgeblendet). */

@@ -155,6 +155,22 @@ describe('portal', () => {
       req.flush(myApplication());
     });
 
+    it('withdraws an application and makes the job available again', () => {
+      const store = TestBed.inject(PortalStore);
+      store.loadJobs();
+      http.expectOne('/api/applicant/jobs').flush([openJob({ applied: true })]);
+      store.loadApplications();
+      http.expectOne('/api/applicant/applications').flush([myApplication({ id: 7 })]);
+
+      store.withdraw(myApplication({ id: 7 })).subscribe();
+      const req = http.expectOne('/api/applicant/applications/7');
+      expect(req.request.method).toBe('DELETE');
+      req.flush(null);
+
+      expect(store.applications()).toEqual([]);
+      expect(store.jobs()[0].applied).toBeFalse();
+    });
+
     it('drops cached data when another account signs in', () => {
       const store = TestBed.inject(PortalStore);
       store.loadApplications();
@@ -418,6 +434,24 @@ describe('portal', () => {
       expect(root.querySelector('.pool-request')?.textContent).toContain('01.11.2026');
       expect(root.querySelector('.pool-answer')?.getAttribute('href')).toBe('/evidenz/abc');
       expect(root.querySelector('.pool-confirmed')?.textContent).toContain('19.10.2028');
+    });
+
+    it('withdraws an application after confirmation', async () => {
+      const fixture = TestBed.createComponent(MyApplicationsComponent);
+      await fixture.whenStable();
+      http.expectOne('/api/applicant/applications').flush([myApplication({ id: 7 })]);
+      await fixture.whenStable();
+      const root = fixture.nativeElement as HTMLElement;
+
+      (root.querySelector('.withdraw') as HTMLButtonElement).click();
+      await fixture.whenStable();
+      expect(root.querySelector('app-confirm-dialog')?.textContent).toContain('endgültig gelöscht');
+      (root.querySelector('app-confirm-dialog .confirm') as HTMLButtonElement).click();
+      http.expectOne('/api/applicant/applications/7').flush(null);
+      await fixture.whenStable();
+
+      expect(root.querySelector('app-confirm-dialog')).toBeNull();
+      expect(root.textContent).toContain('Sie haben sich noch auf keine Stelle beworben.');
     });
 
     it('shows an empty state', async () => {

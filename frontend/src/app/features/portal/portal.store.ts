@@ -103,6 +103,18 @@ export class PortalStore {
     );
   }
 
+  /** Zieht eine Bewerbung zurück; die Stelle ist danach wieder bewerbbar. */
+  withdraw(application: MyApplication): Observable<void> {
+    return this.api.withdraw(application.id).pipe(
+      tap(() => {
+        this.applications.update((list) => list.filter((a) => a.id !== application.id));
+        this.jobs.update((list) =>
+          list.map((j) => (j.id === application.jobId ? { ...j, applied: false } : j)),
+        );
+      }),
+    );
+  }
+
   private resetIfOtherUser(): void {
     const current = this.auth.user()?.email ?? null;
     if (current !== this.owner) {

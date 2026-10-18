@@ -260,3 +260,18 @@
   background: var(--tm-green-surface);
   border-left: 4px solid var(--tm-green-bar);
 }
+
+.application-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.withdraw {
+  margin-left: auto;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 13px;
+}

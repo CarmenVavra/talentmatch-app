@@ -138,6 +138,7 @@ describe('AuthService, interceptor and guards', () => {
         lastName: 'M',
         email: 'max@example.org',
         password: 'geheim-123',
+        privacyAccepted: true,
       })
       .subscribe();
     const req = http.expectOne('/api/auth/register');

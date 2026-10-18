@@ -17,9 +17,11 @@ import {
   Plus,
   RotateCcw,
   Search,
+  ShieldCheck,
   Sparkles,
   Trash2,
   Upload,
+  UserX,
   X,
 } from 'lucide-angular';
 
@@ -43,8 +45,10 @@ export const ICONS = {
   plus: Plus,
   retry: RotateCcw,
   search: Search,
+  shield: ShieldCheck,
   sparkles: Sparkles,
   trash: Trash2,
   upload: Upload,
+  userX: UserX,
   x: X,
 } as const;
