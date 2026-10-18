@@ -89,4 +89,4 @@ Details zu Konfiguration, E-Mail-Versand, Evidenz-Fristen und Architektur stehen
 
 ## Lizenz
 
-[MIT](LICENSE) © 2026 Carmen Vavra
+[MIT](LICENSE) © 2026 Carmen Gregor
