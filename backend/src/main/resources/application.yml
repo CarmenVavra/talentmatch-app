@@ -44,6 +44,15 @@ talentmatch:
     expiration: 8h
   upload:
     max-file-size-bytes: 10485760
+  mail:
+    # Ohne spring.mail.host (SMTP) werden E-Mails nur im Postausgang der App abgelegt, nicht versendet.
+    from: ${TALENTMATCH_MAIL_FROM:noreply@talentmatch.local}
+    # Basis-URL für Links in E-Mails (Antwortseite der Evidenz-Anfrage)
+    app-base-url: ${TALENTMATCH_APP_BASE_URL:http://localhost:4200}
+  talent-pool:
+    response-period: 14d
+    reminder-after: 7d
+    retention: 730d
   seed:
     # Demo-Daten (Stellen, Bewerbungen, KI-Analysen) und Demo-Benutzer beim ersten Start anlegen.
     enabled: true

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import de.talentmatch.application.ApplicationStatus;
+import de.talentmatch.talentpool.TalentPoolStatus;
 
 /**
  * Bewerbung für Kanban-Karten und die Bewerberliste. {@code overallScore} ist null, solange nicht analysiert.
@@ -19,5 +20,6 @@ public record ApplicationSummaryDto(
         CandidateSummaryDto candidate,
         Integer overallScore,
         List<String> skills,
-        boolean unread) {
+        boolean unread,
+        TalentPoolStatus talentPool) {
 }

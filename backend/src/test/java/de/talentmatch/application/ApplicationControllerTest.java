@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -69,6 +70,9 @@ class ApplicationControllerTest {
 
     @MockitoBean
     private ApplicationMergeService mergeService;
+
+    @MockitoBean
+    private ApplicationDeletionService deletionService;
 
     @Test
     void listsApplicationsOfJob() throws Exception {
@@ -188,6 +192,12 @@ class ApplicationControllerTest {
     }
 
     @Test
+    void deleteReturns204() throws Exception {
+        mockMvc.perform(delete("/api/applications/5").with(hrManager())).andExpect(status().isNoContent());
+        verify(deletionService).delete(5L);
+    }
+
+    @Test
     void markSeenReturns204() throws Exception {
         mockMvc.perform(post("/api/applications/5/seen").with(hrManager()))
                 .andExpect(status().isNoContent());
@@ -236,6 +246,6 @@ class ApplicationControllerTest {
     private static ApplicationSummaryDto summary(ApplicationStatus status) {
         return new ApplicationSummaryDto(5L, 1L, "Senior Java Developer", status, LocalDateTime.of(2026, 10, 6, 9, 0),
                 new CandidateSummaryDto(7L, "Jonas", "Weber", "Java Developer", "Siemens", "Erlangen"), 84,
-                List.of("Java", "Spring Boot"), false);
+                List.of("Java", "Spring Boot"), false, null);
     }
 }

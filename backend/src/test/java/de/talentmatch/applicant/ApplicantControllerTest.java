@@ -36,7 +36,8 @@ import de.talentmatch.support.WebMvcSecurityTestConfig;
 class ApplicantControllerTest {
 
     private static final MyApplicationDto APPLICATION = new MyApplicationDto(1L, 3L, "Data Engineer", "Data",
-            "Hamburg", ApplicantStatus.INTERVIEW, LocalDateTime.of(2026, 10, 8, 10, 15), "cv.pdf", null, null);
+            "Hamburg", ApplicantStatus.INTERVIEW, LocalDateTime.of(2026, 10, 8, 10, 15), "cv.pdf", null, null,
+            null, null, null, null);
 
     @Autowired
     private MockMvc mockMvc;

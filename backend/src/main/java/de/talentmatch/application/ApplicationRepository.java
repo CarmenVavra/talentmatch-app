@@ -37,6 +37,48 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
         "coverLetterDocument"})
     Optional<Application> findWithDocumentsById(Long id);
 
+    /**
+     * Alle Bewerbungen in Evidenz (angefragt oder bestätigt), neueste Anfrage zuerst.
+     */
+    @EntityGraph(attributePaths = {"candidate", "jobPosition"})
+    @Query("select a from Application a where a.talentPool.status is not null order by a.talentPool.requestedAt desc")
+    List<Application> findInTalentPool();
+
+    @EntityGraph(attributePaths = {"candidate", "jobPosition"})
+    @Query("select a from Application a where a.talentPool.token = :token")
+    Optional<Application> findByTalentPoolToken(@Param("token") String token);
+
+    /**
+     * Unbeantwortete Anfragen, deren Frist abgelaufen ist.
+     */
+    @Query("""
+            select a from Application a
+            where a.talentPool.status = de.talentmatch.talentpool.TalentPoolStatus.REQUESTED
+              and a.talentPool.responseDeadline < :now""")
+    List<Application> findExpiredTalentPoolRequests(@Param("now") LocalDateTime now);
+
+    /**
+     * Unbeantwortete Anfragen, die eine Erinnerung brauchen (angefragt vor {@code remindBefore}, Frist läuft noch).
+     */
+    @EntityGraph(attributePaths = {"candidate", "jobPosition"})
+    @Query("""
+            select a from Application a
+            where a.talentPool.status = de.talentmatch.talentpool.TalentPoolStatus.REQUESTED
+              and a.talentPool.reminderSentAt is null
+              and a.talentPool.requestedAt <= :remindBefore
+              and a.talentPool.responseDeadline >= :now""")
+    List<Application> findTalentPoolRequestsToRemind(@Param("remindBefore") LocalDateTime remindBefore,
+                                                     @Param("now") LocalDateTime now);
+
+    /**
+     * Bestätigte Evidenz, deren Aufbewahrungsdauer abgelaufen ist.
+     */
+    @Query("""
+            select a from Application a
+            where a.talentPool.status = de.talentmatch.talentpool.TalentPoolStatus.CONFIRMED
+              and a.talentPool.expiresAt < :now""")
+    List<Application> findExpiredTalentPoolConsents(@Param("now") LocalDateTime now);
+
     @EntityGraph(attributePaths = {"resumeDocument"})
     Optional<Application> findWithResumeById(Long id);
 

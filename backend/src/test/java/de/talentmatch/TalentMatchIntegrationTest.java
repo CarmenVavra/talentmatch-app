@@ -15,7 +15,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.jayway.jsonpath.JsonPath;
 
@@ -35,9 +38,11 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import de.talentmatch.common.persistence.SchemaUpgrade;
 import de.talentmatch.job.JobPosition;
+import de.talentmatch.talentpool.TalentPoolService;
 
 /**
  * End-to-End über die REST-API mit echter Security, echter (In-Memory-)Datenbank und Demo-Daten.
@@ -55,6 +60,9 @@ class TalentMatchIntegrationTest {
 
     @Autowired
     private SchemaUpgrade schemaUpgrade;
+
+    @Autowired
+    private TalentPoolService talentPoolService;
 
     @Value("${talentmatch.seed.hr-email}")
     private String hrEmail;
@@ -532,6 +540,146 @@ class TalentMatchIntegrationTest {
     }
 
     @Test
+    void talentPoolRequestConfirmationAndExpiry() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        Integer id = hrUpload(hrToken, jobId, "Lebenslauf_Lina_Pool.pdf", "Lina Pool lina.pool@example.org");
+
+        // Vorschlag: Empfänger:in, Betreff und bearbeitbarer Text mit Platzhalter für die Links
+        mockMvc.perform(get("/api/applications/{id}/talent-pool/preview", id)
+                        .header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recipient").value("lina.pool@example.org"))
+                .andExpect(jsonPath("$.body").value(containsString("[Antwort-Links]")))
+                .andExpect(jsonPath("$.body").value(containsString("Katrin Vogel")));
+
+        requestTalentPool(hrToken, id)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("REJECTED"))
+                .andExpect(jsonPath("$.talentPool.status").value("REQUESTED"));
+        requestTalentPool(hrToken, id).andExpect(status().isConflict());
+
+        // Die E-Mail liegt im Postausgang (ohne Mailserver: nicht versendet) und enthält den persönlichen Link
+        String token = talentPoolToken(hrToken, id);
+        mockMvc.perform(get("/api/public/talent-pool/{token}", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.firstName").value("Lina"))
+                .andExpect(jsonPath("$.status").value("REQUESTED"))
+                .andExpect(jsonPath("$.email").doesNotExist());
+
+        mockMvc.perform(post("/api/public/talent-pool/{token}/confirm", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CONFIRMED"))
+                .andExpect(jsonPath("$.expiresAt").exists());
+        mockMvc.perform(get("/api/talent-pool").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(jsonPath("$[?(@.applicationId == " + id + ")].talentPool.status").value("CONFIRMED"));
+        assertThat(outboxSubjects(hrToken, id)).hasSize(2)
+                .anySatisfy(subject -> assertThat(subject).contains("bleiben in Evidenz"));
+
+        // Nach Ablauf der Aufbewahrungsdauer wird die Bewerbung samt E-Mails gelöscht
+        talentPoolService.runMaintenance(LocalDateTime.now().plusDays(731));
+        mockMvc.perform(get("/api/applications/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+        assertThat(outboxSubjects(hrToken, id)).isEmpty();
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
+    void unansweredTalentPoolRequestsAreRemindedAndDeleted() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        Integer id = hrUpload(hrToken, jobId, "Lebenslauf_Otto_Still.pdf", "Otto Still otto.still@example.org");
+        requestTalentPool(hrToken, id).andExpect(status().isOk());
+
+        talentPoolService.runMaintenance(LocalDateTime.now().plusDays(8));
+        talentPoolService.runMaintenance(LocalDateTime.now().plusDays(9));
+        assertThat(outboxSubjects(hrToken, id)).hasSize(2)
+                .anySatisfy(subject -> assertThat(subject).startsWith("Erinnerung"));
+
+        talentPoolService.runMaintenance(LocalDateTime.now().plusDays(15));
+        mockMvc.perform(get("/api/applications/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
+    void declineDeletesImmediatelyAndInvalidatesTheLink() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        Integer id = hrUpload(hrToken, jobId, "Lebenslauf_Nora_Nein.pdf", "Nora Nein nora.nein@example.org");
+        requestTalentPool(hrToken, id).andExpect(status().isOk());
+        String token = talentPoolToken(hrToken, id);
+
+        mockMvc.perform(post("/api/public/talent-pool/{token}/decline", token)).andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/applications/{id}", id).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/public/talent-pool/{token}", token)).andExpect(status().isNotFound());
+        mockMvc.perform(post("/api/public/talent-pool/{token}/confirm", token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(containsString("nicht mehr gültig")));
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
+    void talentPoolRulesAndDeletingApplications() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+
+        // Ohne E-Mail-Adresse kann nicht angefragt werden
+        Integer withoutEmail = hrUpload(hrToken, jobId, "Lebenslauf_Ohne_Mail.pdf", "Ohne Mail Berufserfahrung");
+        requestTalentPool(hrToken, withoutEmail)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.detail").value(containsString("keine E-Mail-Adresse")));
+
+        // Wird die Absage zurückgenommen, ist die Anfrage hinfällig
+        Integer revived = hrUpload(hrToken, jobId, "Lebenslauf_Rita_Zurueck.pdf", "Rita rita.z@example.org");
+        requestTalentPool(hrToken, revived).andExpect(status().isOk());
+        String token = talentPoolToken(hrToken, revived);
+        mockMvc.perform(patch("/api/applications/{id}", revived).header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"INTERVIEW\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.talentPool").doesNotExist());
+        mockMvc.perform(get("/api/public/talent-pool/{token}", token)).andExpect(status().isNotFound());
+
+        // HR löscht eine Bewerbung endgültig
+        mockMvc.perform(delete("/api/applications/{id}", revived).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/applications/{id}", revived).header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isNotFound());
+        assertThat(outboxSubjects(hrToken, revived)).isEmpty();
+
+        // Evidenz und Postausgang sind HR vorbehalten
+        String applicantToken = login(applicantEmail, applicantPassword);
+        mockMvc.perform(get("/api/talent-pool").header(HttpHeaders.AUTHORIZATION, bearer(applicantToken)))
+                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/outbox").header(HttpHeaders.AUTHORIZATION, bearer(applicantToken)))
+                .andExpect(status().isForbidden());
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
+    void portalApplicantSeesTheTalentPoolRequest() throws Exception {
+        String hrToken = login(hrEmail, hrPassword);
+        Integer jobId = createJob(hrToken);
+        String applicantToken = register("paula.portal@example.org");
+        Integer id = portalApply(applicantToken, jobId);
+        requestTalentPool(hrToken, id).andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(applicantToken)))
+                .andExpect(jsonPath("$[0].status").value("REJECTED"))
+                .andExpect(jsonPath("$[0].talentPoolStatus").value("REQUESTED"))
+                .andExpect(jsonPath("$[0].talentPoolToken").value(talentPoolToken(hrToken, id)))
+                .andExpect(jsonPath("$[0].talentPoolDeadline").exists());
+
+        deleteJob(hrToken, jobId);
+    }
+
+    @Test
     void seededApplicantHasDemoApplications() throws Exception {
         String token = login(applicantEmail, applicantPassword);
         mockMvc.perform(get("/api/applicant/applications").header(HttpHeaders.AUTHORIZATION, bearer(token)))
@@ -586,6 +734,31 @@ class TalentMatchIntegrationTest {
 
     private static String json(String current, String next) {
         return "{\"currentPassword\":\"" + current + "\",\"newPassword\":\"" + next + "\"}";
+    }
+
+    private ResultActions requestTalentPool(String hrToken, Integer id) throws Exception {
+        return mockMvc.perform(post("/api/applications/{id}/talent-pool", id)
+                .header(HttpHeaders.AUTHORIZATION, bearer(hrToken))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"subject\":\"Ihre Bewerbung\",\"body\":\"Guten Tag,\\n\\n[Antwort-Links]\\n\\nGruß\"}"));
+    }
+
+    /** Liest den persönlichen Antwort-Link aus der ersten E-Mail der Bewerbung im Postausgang. */
+    private String talentPoolToken(String hrToken, Integer applicationId) throws Exception {
+        String outbox = mockMvc.perform(get("/api/outbox").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.deliveryEnabled").value(false))
+                .andReturn().getResponse().getContentAsString();
+        List<String> bodies = JsonPath.read(outbox, "$.mails[?(@.applicationId == " + applicationId + ")].body");
+        Matcher matcher = Pattern.compile("/evidenz/([A-Za-z0-9_-]+)\\?antwort=ja").matcher(bodies.getLast());
+        assertThat(matcher.find()).isTrue();
+        return matcher.group(1);
+    }
+
+    private List<String> outboxSubjects(String hrToken, Integer applicationId) throws Exception {
+        String outbox = mockMvc.perform(get("/api/outbox").header(HttpHeaders.AUTHORIZATION, bearer(hrToken)))
+                .andReturn().getResponse().getContentAsString();
+        return JsonPath.read(outbox, "$.mails[?(@.applicationId == " + applicationId + ")].subject");
     }
 
     private Integer createJob(String hrToken) throws Exception {

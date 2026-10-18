@@ -6,6 +6,7 @@ import java.util.List;
 
 import de.talentmatch.application.ApplicationStatus;
 import de.talentmatch.candidate.CandidateProfile;
+import de.talentmatch.talentpool.api.TalentPoolInfoDto;
 
 /**
  * Bewerber-Detail (AI Analytics View): Kandidat:in, extrahiertes Profil und KI-Analyse ({@code analysis} ist null,
@@ -22,7 +23,8 @@ public record ApplicationDetailDto(
         JobRefDto job,
         CandidateDetailDto candidate,
         AnalysisDto analysis,
-        boolean unread) {
+        boolean unread,
+        TalentPoolInfoDto talentPool) {
 
     public record JobRefDto(
             Long id,

@@ -22,6 +22,7 @@ import de.talentmatch.job.JobPositionRepository;
 import de.talentmatch.resume.ApplicantDocuments;
 import de.talentmatch.resume.DocumentType;
 import de.talentmatch.resume.ResumeUploadService;
+import de.talentmatch.talentpool.TalentPoolConsent;
 
 /**
  * Bewerber-Portal: offene Stellen ansehen, sich bewerben, Status der eigenen Bewerbungen verfolgen.
@@ -105,6 +106,10 @@ public class ApplicantService {
                 job.getLocation(), ApplicantStatus.from(application.getStatus()), application.getCreatedAt(),
                 application.getResumeFileName().orElse(null),
                 application.getDocumentFileName(DocumentType.SKILL_PROFILE).orElse(null),
-                application.getDocumentFileName(DocumentType.COVER_LETTER).orElse(null));
+                application.getDocumentFileName(DocumentType.COVER_LETTER).orElse(null),
+                application.getTalentPool().map(TalentPoolConsent::getStatus).orElse(null),
+                application.getTalentPool().map(TalentPoolConsent::getToken).orElse(null),
+                application.getTalentPool().map(TalentPoolConsent::getResponseDeadline).orElse(null),
+                application.getTalentPool().map(TalentPoolConsent::getExpiresAt).orElse(null));
     }
 }

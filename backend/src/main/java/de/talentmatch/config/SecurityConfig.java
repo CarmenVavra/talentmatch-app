@@ -53,6 +53,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/**").authenticated()
+                        // Antwortseite der Evidenz-Anfrage: Zugang nur über den geheimen Link
+                        .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/applicant/**").hasRole(Role.APPLICANT.name())
                         .requestMatchers("/api/**").hasRole(Role.HR_MANAGER.name())
                         .requestMatchers("/h2-console/**", "/error").permitAll()

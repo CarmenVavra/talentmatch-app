@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -24,6 +25,7 @@ import de.talentmatch.candidate.Candidate;
 import de.talentmatch.job.JobPosition;
 import de.talentmatch.resume.DocumentType;
 import de.talentmatch.resume.ResumeDocument;
+import de.talentmatch.talentpool.TalentPoolConsent;
 
 /**
  * Bewerbung einer Kandidat:in auf eine Stelle – Karte im Kanban-Board.
@@ -86,6 +88,10 @@ public class Application {
     /** Zeitpunkt, zu dem HR die Bewerbung erstmals geöffnet oder bearbeitet hat. */
     private LocalDateTime seenByHrAt;
 
+    /** Evidenz-Anfrage bzw. -Einwilligung (null = nicht in Evidenz). */
+    @Embedded
+    private TalentPoolConsent talentPool;
+
     protected Application() {
     }
 
@@ -146,8 +152,26 @@ public class Application {
         return status;
     }
 
+    /**
+     * Ändert den Status. Wird eine Bewerbung aus „Absage“ zurückgeholt, ist eine Evidenz-Anfrage hinfällig.
+     */
     public void setStatus(ApplicationStatus status) {
         this.status = status;
+        if (status != ApplicationStatus.REJECTED) {
+            this.talentPool = null;
+        }
+    }
+
+    /**
+     * Absage mit Evidenz-Anfrage: Die Bewerbung wandert nach „Absage“ und wartet auf die Antwort.
+     */
+    public void requestTalentPool(TalentPoolConsent consent) {
+        this.status = ApplicationStatus.REJECTED;
+        this.talentPool = consent;
+    }
+
+    public Optional<TalentPoolConsent> getTalentPool() {
+        return Optional.ofNullable(talentPool).filter(consent -> consent.getStatus() != null);
     }
 
     public LocalDateTime getCreatedAt() {

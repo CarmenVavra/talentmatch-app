@@ -19,6 +19,8 @@ import de.talentmatch.application.api.CandidateSummaryDto;
 import de.talentmatch.candidate.Candidate;
 import de.talentmatch.job.JobPosition;
 import de.talentmatch.resume.DocumentType;
+import de.talentmatch.talentpool.TalentPoolConsent;
+import de.talentmatch.talentpool.api.TalentPoolInfoDto;
 
 /**
  * Wandelt Entities in API-DTOs um (Entities verlassen nie die Service-Schicht).
@@ -42,7 +44,8 @@ public final class ApplicationMapper {
                         candidate.getCurrentRole(), candidate.getCurrentCompany(), candidate.getCity()),
                 score,
                 mergeSkills(matching, candidate.skills()),
-                application.isUnread());
+                application.isUnread(),
+                application.getTalentPool().map(TalentPoolConsent::getStatus).orElse(null));
     }
 
     public static ApplicationDetailDto toDetail(Application application) {
@@ -62,7 +65,13 @@ public final class ApplicationMapper {
                         candidate.getEmail(), candidate.getPhone(), candidate.getCity(), candidate.getCurrentRole(),
                         candidate.getCurrentCompany(), candidate.getParsedProfile().orElse(null)),
                 application.getAnalysis().map(ApplicationMapper::toAnalysis).orElse(null),
-                application.isUnread());
+                application.isUnread(),
+                application.getTalentPool().map(ApplicationMapper::toTalentPool).orElse(null));
+    }
+
+    public static TalentPoolInfoDto toTalentPool(TalentPoolConsent consent) {
+        return new TalentPoolInfoDto(consent.getStatus(), consent.getRequestedAt(), consent.getResponseDeadline(),
+                consent.getReminderSentAt(), consent.getConfirmedAt(), consent.getExpiresAt());
     }
 
     private static AnalysisDto toAnalysis(AnalysisResult result) {

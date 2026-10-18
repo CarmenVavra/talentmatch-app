@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,15 +49,18 @@ public class ApplicationController {
     private final AnalysisService analysisService;
     private final UploadInspectionService inspectionService;
     private final ApplicationMergeService mergeService;
+    private final ApplicationDeletionService deletionService;
 
     public ApplicationController(ApplicationService applicationService, ResumeUploadService uploadService,
                                  AnalysisService analysisService, UploadInspectionService inspectionService,
-                                 ApplicationMergeService mergeService) {
+                                 ApplicationMergeService mergeService,
+                                 ApplicationDeletionService deletionService) {
         this.applicationService = applicationService;
         this.uploadService = uploadService;
         this.analysisService = analysisService;
         this.inspectionService = inspectionService;
         this.mergeService = mergeService;
+        this.deletionService = deletionService;
     }
 
     @GetMapping("/jobs/{jobId}/applications")
@@ -101,6 +105,12 @@ public class ApplicationController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void updateNotes(@PathVariable Long id, @Valid @RequestBody UpdateNotesRequest request) {
         applicationService.updateNotes(id, request.notes());
+    }
+
+    @DeleteMapping("/applications/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        deletionService.delete(id);
     }
 
     @GetMapping("/applications/{id}/duplicates")

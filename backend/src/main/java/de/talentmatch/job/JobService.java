@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import de.talentmatch.application.Application;
+import de.talentmatch.application.ApplicationDeletionService;
 import de.talentmatch.application.ApplicationRepository;
 import de.talentmatch.application.ApplicationRepository.JobAverageScore;
 import de.talentmatch.application.ApplicationRepository.JobStatusCount;
@@ -25,11 +26,14 @@ public class JobService {
 
     private final JobPositionRepository jobRepository;
     private final ApplicationRepository applicationRepository;
+    private final ApplicationDeletionService deletionService;
     private final Clock clock;
 
-    public JobService(JobPositionRepository jobRepository, ApplicationRepository applicationRepository, Clock clock) {
+    public JobService(JobPositionRepository jobRepository, ApplicationRepository applicationRepository,
+                      ApplicationDeletionService deletionService, Clock clock) {
         this.jobRepository = jobRepository;
         this.applicationRepository = applicationRepository;
+        this.deletionService = deletionService;
         this.clock = clock;
     }
 
@@ -80,7 +84,7 @@ public class JobService {
     public int deleteJob(Long id) {
         JobPosition job = jobRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Stelle", id));
         List<Application> applications = applicationRepository.findAllWithDependenciesByJobPositionId(id);
-        applicationRepository.deleteAll(applications);
+        deletionService.deleteAll(applications);
         jobRepository.delete(job);
         return applications.size();
     }

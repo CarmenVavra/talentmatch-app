@@ -9,7 +9,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * Anwendungsspezifische Einstellungen unter dem Präfix {@code talentmatch}.
  */
 @ConfigurationProperties(prefix = "talentmatch")
-public record TalentMatchProperties(Cors cors, Jwt jwt, Upload upload, Seed seed) {
+public record TalentMatchProperties(Cors cors, Jwt jwt, Upload upload, Seed seed, Mail mail,
+                                    TalentPool talentPool) {
 
     public record Cors(List<String> allowedOrigins) {
     }
@@ -18,6 +19,18 @@ public record TalentMatchProperties(Cors cors, Jwt jwt, Upload upload, Seed seed
     }
 
     public record Upload(long maxFileSizeBytes) {
+    }
+
+    /**
+     * Absender der E-Mails und Basis-URL der App für Links in E-Mails.
+     */
+    public record Mail(String from, String appBaseUrl) {
+    }
+
+    /**
+     * Evidenz: Antwortfrist, Erinnerung nach und Aufbewahrungsdauer nach Zustimmung.
+     */
+    public record TalentPool(Duration responsePeriod, Duration reminderAfter, Duration retention) {
     }
 
     public record Seed(

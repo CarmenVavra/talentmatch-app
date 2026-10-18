@@ -37,10 +37,13 @@ public class ApplicationMergeService {
     private static final String APPLICATION = "Bewerbung";
 
     private final ApplicationRepository applicationRepository;
+    private final ApplicationDeletionService deletionService;
     private final Clock clock;
 
-    public ApplicationMergeService(ApplicationRepository applicationRepository, Clock clock) {
+    public ApplicationMergeService(ApplicationRepository applicationRepository,
+                                   ApplicationDeletionService deletionService, Clock clock) {
         this.applicationRepository = applicationRepository;
+        this.deletionService = deletionService;
         this.clock = clock;
     }
 
@@ -95,7 +98,7 @@ public class ApplicationMergeService {
 
         Optional<UserAccount> account = target.getApplicantAccount().isEmpty()
                 ? source.getApplicantAccount() : Optional.empty();
-        applicationRepository.delete(source);
+        deletionService.delete(source);
         applicationRepository.flush();
         // Erst nach dem Löschen übernehmen: Ein Konto darf pro Stelle nur eine Bewerbung haben.
         account.ifPresent(target::setApplicantAccount);
