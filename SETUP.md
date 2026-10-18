@@ -57,6 +57,40 @@ Bewerber:innen sehen bewusst **keinen Match-Score** und keine KI-Bewertung; der 
 automatisch im Hintergrund – schlägt sie fehl (z. B. ohne API-Key), kann HR sie in der Pipeline
 manuell starten. Das Demo-Bewerberkonto hat bereits zwei Bewerbungen.
 
+## Evidenz (Talentpool)
+
+In der Bewerber-Detailansicht sendet **„In Evidenz halten“** eine Absage mit der Bitte um Zustimmung,
+die Unterlagen aufzubewahren (Text vor dem Versand anpassbar). Die Bewerber:in antwortet über einen
+persönlichen Link ohne Anmeldung („Ja, gerne“ / „Nein, danke“; Portal-Nutzer:innen auch unter „Meine
+Bewerbungen“).
+
+- Ohne Antwort: Erinnerung nach 7 Tagen, Löschung nach 14 Tagen.
+- „Nein, danke“ oder Widerruf: sofortige Löschung.
+- Mit Zustimmung: Aufbewahrung höchstens 24 Monate, danach automatische Löschung.
+- Die Fristen prüft die App stündlich und beim Start (`talentmatch.talent-pool` in `application.yml`).
+
+Der Menüpunkt **„Evidenz“** listet alle Einträge über alle Stellen. **„Bewerbung löschen“** entfernt eine
+Bewerbung endgültig, inklusive Unterlagen, KI-Analyse und E-Mails.
+
+## E-Mails und Postausgang
+
+Alle E-Mails der App stehen im **Postausgang** (Avatar-Menü → „Postausgang“). Ohne Mailserver werden sie
+**nur dort abgelegt**, nicht versendet – die Links darin funktionieren trotzdem. Für echten Versand vor dem
+Start einen SMTP-Server setzen:
+
+```bat
+set SPRING_MAIL_HOST=smtp.example.com
+set SPRING_MAIL_PORT=587
+set SPRING_MAIL_USERNAME=...
+set SPRING_MAIL_PASSWORD=...
+set SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH=true
+set SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE=true
+set TALENTMATCH_MAIL_FROM=recruiting@example.com
+set TALENTMATCH_APP_BASE_URL=https://talentmatch.example.com
+```
+
+`TALENTMATCH_APP_BASE_URL` ist die Adresse, unter der Bewerber:innen die Antwortseite erreichen.
+
 ## KI-Analyse (OpenAI)
 
 Die Analyse neuer Lebensläufe nutzt Spring AI mit OpenAI `gpt-4o`. Vor dem Start setzen:
