@@ -2,6 +2,11 @@
 
 This document contains strict rules, guidelines, and commands that Claude MUST follow during development, testing, and automated code reviews
 
+## 0. Before you start implementing
+
+- **Read Files:** Read all *.md (also in child folders) and all *.pdf in the project folder (`TalentMatch.pdf`).
+- **UI_Mockups:** Implement the app according to the UI_Mockups in the project folder.
+
 ## 1. System Commands & Workflow - Before finalizing any task, creating a commit, or finishing a review, you must execute verification
 
 - **Frontend Build & Test:** `npm run build` and `npm run test -- --watch=false`
