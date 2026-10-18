@@ -17,6 +17,13 @@ Wrapper (`backend/mvnw.cmd`) geladen, Frontend-Abhängigkeiten installiert `star
 `backend/src/main/resources/application.yml` unter `talentmatch.seed` (HR-Manager:in und Bewerber:in).
 Passwort ändern: Avatar oben rechts → „Passwort ändern“.
 
+**Lebensläufe hochladen (HR):** Mehrere PDFs auf einmal ablegen – die App erkennt Lebenslauf, Skill-Profil und
+Anschreiben und fasst Unterlagen derselben Person zusammen (gleiche E-Mail, Telefonnummer oder gleicher Name;
+reine Namens-Treffer sind zur Prüfung markiert). In der Vorschau lassen sich Dokumentart und Zuordnung ändern.
+Doppelte Bewerbungen derselben Person **auf derselben Stelle** zeigt die Detailansicht als „Mögliches Duplikat“ an
+und führt sie auf Wunsch zusammen. Stellenübergreifend oder zwischen verschiedenen Bewerber-Konten ist das nicht
+möglich.
+
 **Stellen verwalten (HR):** In der Pipeline einer Stelle über „Bearbeiten“ bzw. „Löschen“. Das Löschen
 entfernt nach Bestätigung auch alle Bewerbungen der Stelle inklusive Unterlagen und KI-Analysen.
 Beschreibungen dürfen bis zu 20.000 Zeichen lang sein; `**Text**` wird im Bewerber-Portal fett dargestellt
